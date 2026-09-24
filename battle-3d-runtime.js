@@ -1,7 +1,8 @@
 (async()=>{'use strict';
  const canvas=document.getElementById('canvas'),status=document.getElementById('status');
  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
- renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;renderer.setClearColor(0x000000,0);
+ let renderQuality=globalThis.RankBattleRenderQuality?.resolve(globalThis.RankBattleRenderQuality.read())||{pixelRatio:Math.min(devicePixelRatio||1,1.5),fps:60};
+ renderer.setPixelRatio(renderQuality.pixelRatio);renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;renderer.setClearColor(0x000000,0);
  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(33.4,1.778125,100,10000);
  camera.position.set(0,100,1800);camera.lookAt(0,100,0);
  scene.add(new THREE.HemisphereLight(0xffffff,0x33405b,2.2));const light=new THREE.DirectionalLight(0xffffff,2.8);light.position.set(3,5,4);scene.add(light);
@@ -146,6 +147,7 @@
  });
  window.addEventListener('message',event=>{
   if(event.source!==parent)return;const d=event.data;if(!d||typeof d.type!=='string')return;
+  if(d.type==='rank-battle-3d-quality'){const next=globalThis.RankBattleRenderQuality?.resolve(d.value);if(next){renderQuality=next;renderer.setPixelRatio(next.pixelRatio);width=height=0;}return;}
   if(d.type==='rank-battle-3d-sync'){
    paused=!!d.paused;visible=!!d.visible;busy=!!d.busy;
    const next=d.actors||[],changed=JSON.stringify(next.map(a=>[a.key,a.spec]))!==JSON.stringify(desired.map(a=>[a.key,a.spec]));desired=next;if(changed)revision++;
@@ -183,6 +185,8 @@
  });
  document.addEventListener('visibilitychange',()=>{last=0});
  renderer.setAnimationLoop(now=>{try{
+  // Keep elapsed time across skipped draws: 30fps never halves the motion speed.
+  if(renderQuality.fps===30&&last&&now-last<1000/30-.5)return;
   const dt=last?Math.min(.1,Math.max(0,(now-last)/1000)):0;last=now;if(!visible||document.hidden)return;
   const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;
   if(w!==width||h!==height){width=w;height=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();camera.updateMatrixWorld()}
