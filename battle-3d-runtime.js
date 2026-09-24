@@ -1,8 +1,8 @@
 (async()=>{'use strict';
  const canvas=document.getElementById('canvas'),status=document.getElementById('status');
  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
- let renderQuality=globalThis.RankBattleRenderQuality?.resolve(globalThis.RankBattleRenderQuality.read())||{pixelRatio:Math.min(devicePixelRatio||1,1.5),fps:60};
- renderer.setPixelRatio(renderQuality.pixelRatio);renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;renderer.setClearColor(0x000000,0);
+ let computeQuality=globalThis.RankBattleComputeQuality?.resolve(globalThis.RankBattleComputeQuality.read())||{actorHz:0,effectHz:0};
+ renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;renderer.setClearColor(0x000000,0);
  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(33.4,1.778125,100,10000);
  camera.position.set(0,100,1800);camera.lookAt(0,100,0);
  scene.add(new THREE.HemisphereLight(0xffffff,0x33405b,2.2));const light=new THREE.DirectionalLight(0xffffff,2.8);light.position.set(3,5,4);scene.add(light);
@@ -26,6 +26,7 @@
  // Motion scripts publish one shared slot, so load them sequentially exactly once.
  for(const name of new Set([...names,...Object.values(globalThis.RankBattleVisualData?.conditions||{}).map(d=>d.motion).filter(Boolean)])){const row=DENPA_MOTIONS.animations.find(x=>x.labelJa===name);if(!row)throw Error('モーションがありません: '+name);await loadScript(row.script);motions.set(name,await loadMotion(DENPA_MOTION_DATA,false));globalThis.DENPA_MOTION_DATA=null;}
  let fx=null;try{fx=await globalThis.createBattleEffects?.(renderer,loadScript)}catch(error){console.warn('Battle effects unavailable:',error);parent.postMessage({type:'rank-battle-3d-warning',message:'エフェクトを準備できなかったため、モーションのみ再生します。'},'*');}
+ fx?.setQuality?.(computeQuality.effectHz);
  const shadows=globalThis.RankBattleShadows?.create(THREE,scene);
  const arena=globalThis.RankBattleArena?.create(THREE);if(arena)scene.add(arena.group);
  let lastOutcomeY=null;
@@ -44,7 +45,7 @@
   if(data.footText!==undefined)entry.foot.textContent=data.footText;
  }
  function animateNumbers(entry,dt){RankBattleNumbers.animate?.(entry.label,dt);for(const piece of entry.label.children)RankBattleNumbers.animate?.(piece,dt);}
- function pose(entry,dt){animateNumbers(entry,dt);const sample=entry.track.sample(dt,motions);entry.model.setMotion(sample.name);entry.model.update(sample.seconds,dt);
+ function pose(entry,dt){animateNumbers(entry,dt);const sample=entry.track.sample(dt,motions);entry.model.setMotion(sample.name);entry.model.update(sample.seconds,dt,computeQuality.actorHz?1/computeQuality.actorHz:0);
   // Native UpdateMoveToBack resets position/facing and resumes wait on arrival.
   const currentStep=entry.track.steps.filter(s=>s.at<=entry.track.time).at(-1);
   if(currentStep?.travel==='return'&&entry.track.time>=currentStep.at+currentStep.duration){entry.returning=false;entry.staged=false;entry.strikePosition=null;}
@@ -147,7 +148,7 @@
  });
  window.addEventListener('message',event=>{
   if(event.source!==parent)return;const d=event.data;if(!d||typeof d.type!=='string')return;
-  if(d.type==='rank-battle-3d-quality'){const next=globalThis.RankBattleRenderQuality?.resolve(d.value);if(next){renderQuality=next;renderer.setPixelRatio(next.pixelRatio);width=height=0;}return;}
+  if(d.type==='rank-battle-3d-compute-quality'){const next=globalThis.RankBattleComputeQuality?.resolve(d.value);if(next){computeQuality=next;fx?.setQuality?.(next.effectHz);}return;}
   if(d.type==='rank-battle-3d-sync'){
    paused=!!d.paused;visible=!!d.visible;busy=!!d.busy;
    const next=d.actors||[],changed=JSON.stringify(next.map(a=>[a.key,a.spec]))!==JSON.stringify(desired.map(a=>[a.key,a.spec]));desired=next;if(changed)revision++;
@@ -185,8 +186,6 @@
  });
  document.addEventListener('visibilitychange',()=>{last=0});
  renderer.setAnimationLoop(now=>{try{
-  // Keep elapsed time across skipped draws: 30fps never halves the motion speed.
-  if(renderQuality.fps===30&&last&&now-last<1000/30-.5)return;
   const dt=last?Math.min(.1,Math.max(0,(now-last)/1000)):0;last=now;if(!visible||document.hidden)return;
   const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;
   if(w!==width||h!==height){width=w;height=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();camera.updateMatrixWorld()}
