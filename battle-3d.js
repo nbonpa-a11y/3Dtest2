@@ -23,6 +23,7 @@
  }
  window.addEventListener('message',e=>{
   if(!frame||e.source!==frame.contentWindow)return;
+  if(e.data?.type==='rank-battle-diagnostics')globalThis.RankBattleDiagnosticsPanel?.receive(e.data);
   if(e.data?.type==='rank-battle-3d-pick'&&latest?.visible&&!latest?.busy&&latest?.defaultView?.hpBars)globalThis.RankBattle3D.onPick?.(String(e.data.key),e.data.point);
   if(e.data?.type==='rank-battle-3d-outcome-anchor'&&latest?.defaultView?.outcome){const y=Number(e.data.y);if(Number.isFinite(y))host().closest('.arena')?.style.setProperty('--outcome-y',Math.min(90,Math.max(50,y*100))+'%');}
   if(e.data?.type==='rank-battle-3d-audio'&&pending.has(e.data.id))globalThis.RankBattleAudio?.play(e.data.sound);
@@ -32,7 +33,7 @@
   if(e.data?.type==='rank-battle-3d-prepared'){prepared=true;finishWait();}
   if(e.data?.type==='rank-battle-3d-done'){const resolve=pending.get(e.data.id);pending.delete(e.data.id);resolve?.(!!e.data.played);}
   if(e.data?.type==='rank-battle-3d-warning'){console.warn(e.data.message);const area=host();if(!area.querySelector?.('.battle-3d-warning')){const message=document.createElement('p');message.className='battle-3d-warning';message.textContent=e.data.message;area.append(message);}}
-  if(e.data?.type==='rank-battle-3d-error'){failed=true;cancel();finishWait();const area=host();frame.hidden=true;const message=document.createElement('p');message.className='battle-3d-error';message.textContent='3D表示を読み込めませんでした。戦闘ログはそのまま利用できます。';area.append(message);console.error('Battle 3D:',e.data.message);}
+  if(e.data?.type==='rank-battle-3d-error'){globalThis.RankBattleDiagnosticsPanel?.receive({kind:'error',time:Date.now(),message:String(e.data.message)});failed=true;cancel();finishWait();const area=host();frame.hidden=true;const message=document.createElement('p');message.className='battle-3d-error';message.textContent='3D表示を読み込めませんでした。戦闘ログはそのまま利用できます。';area.append(message);console.error('Battle 3D:',e.data.message);}
  });
  globalThis.RankBattle3D={sync,async prepare(){await globalThis.RankBattleAudio?.prepare();if(prepared||failed||latest?.skip||!latest?.visible)return;await new Promise(resolve=>{const done=()=>{clearTimeout(timer);resolve()},timer=setTimeout(()=>{waiters=waiters.filter(f=>f!==done);done()},90000);waiters.push(done)});},
  present(view,cues=[],labels=[]){if(!ready||!prepared||failed||!latest?.visible||latest.skip)return Promise.resolve(false);cancel();const id=++serial;return new Promise(resolve=>{pending.set(id,resolve);post({type:'rank-battle-3d-cue',id,view,cues,labels})});}};

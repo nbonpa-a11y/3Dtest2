@@ -1,8 +1,9 @@
 (async()=>{'use strict';
  const canvas=document.getElementById('canvas'),status=document.getElementById('status');
- let freezeActors=false;
+ let freezeActors=false,effectMode=globalThis.RankBattleEffectSettings?.read()||'normal';
  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;renderer.setClearColor(0x000000,0);
+ const diagnostics=globalThis.createBattleDiagnostics?.(renderer,canvas);
  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(33.4,1.778125,100,10000);
  camera.position.set(0,100,1800);camera.lookAt(0,100,0);
  scene.add(new THREE.HemisphereLight(0xffffff,0x33405b,2.2));const light=new THREE.DirectionalLight(0xffffff,2.8);light.position.set(3,5,4);scene.add(light);
@@ -17,9 +18,9 @@
  async imagesReady(){if(loadingImages)await new Promise(f=>imageWaiters.push(f));if(imageErrors.length)throw Error('画像素材の読み込みに失敗しました')},
  async resource(kind,path){const key=kind+':'+path;if(!resources.has(key))resources.set(key,(async()=>{const entry=DENPA_EQUIPMENT_INDEX[kind]?.[path];if(!entry)throw Error('装備素材がありません: '+path);const cache=DENPA_EQUIPMENT_CACHE[kind];if(!cache[entry.key])await loadScript(entry.script);if(!cache[entry.key])throw Error('装備素材が空です');return cache[entry.key]})());return resources.get(key)},
  async asset(text,mtl){const key=mtl+'\n'+text;if(!assets.has(key))assets.set(key,(async()=>{const url=URL.createObjectURL(new Blob([text],{type:'text/plain'}));try{return await loadIndexedObj({obj:url,mtl:'',mtlText:mtl.replace(/^map_Kd.*$/gm,'')})}finally{URL.revokeObjectURL(url)}})());
-  const template=await assets.get(key),mesh=template.mesh.clone();mesh.geometry=template.mesh.geometry.clone();mesh.material=Array.isArray(template.mesh.material)?template.mesh.material.map(m=>m.clone()):template.mesh.material.clone();
+  const pending=assets.get(key),template=await pending;assets.delete(key);assets.set(key,pending);const mesh=template.mesh.clone();mesh.geometry=template.mesh.geometry.clone();mesh.material=Array.isArray(template.mesh.material)?template.mesh.material.map(m=>m.clone()):template.mesh.material.clone();
   for(const m of Array.isArray(mesh.material)?mesh.material:[mesh.material]){m.side=THREE.DoubleSide;m.shininess=0}
-  const object=new THREE.Group();object.add(mesh);return {...template,object,mesh,materialNames:template.materialNames.slice()};
+  const object=new THREE.Group();object.add(mesh);while(assets.size>24){const oldest=assets.keys().next().value,item=assets.get(oldest);assets.delete(oldest);item.then(t=>{t.mesh.geometry.dispose();for(const m of Array.isArray(t.mesh.material)?t.mesh.material:[t.mesh.material])m.dispose();});}return {...template,object,mesh,materialNames:template.materialNames.slice()};
  }
  };
  const names=['待機','ふらふら','倒れる','もがく','待機（反転）','走る','走る（反転）','技1','技2','防御','回避','ダメージ','ダウン','起き上がる','喜ぶ','悲しむ','楽しむ'];
@@ -103,7 +104,7 @@
  }
 
  function labelPosition(e){
-  const signature=[width,height,view.mode,e.model.root.position.x,e.model.root.position.y,e.model.root.position.z,e.foot.textContent,camera.position.x,camera.position.y,camera.position.z,cameraTime,camera.fov].join('|');if(e.labelLayout===signature)return;e.labelLayout=signature;
+  const signature=[width,height,view.mode,e.model.root.position.x,e.model.root.position.y,e.model.root.position.z,e.foot.textContent,camera.position.x,camera.position.y,camera.position.z,e.label.textContent?cameraTime:0,e.label.className,e.label.children.length,camera.fov,...camera.matrixWorldInverse.elements,...camera.projectionMatrix.elements].join('|');if(e.labelLayout===signature)return;e.labelLayout=signature;
   const point=RankBattlePlacement.numberAnchor(THREE,e,camera).project(camera),foot=new THREE.Vector3(e.model.root.position.x,e.model.root.position.y-5,e.model.root.position.z).project(camera);
   const unit=width/1280; e.label.style.setProperty?.('--popup-unit',unit+'px'); e.label.style.fontSize=RankBattlePlacement.numberEm(e.label.className.includes('critical'),unit)+'px';
   e.label.style.left=Math.max(50*unit,Math.min(width-50*unit,(point.x+1)*width/2))+'px';e.label.style.top=Math.max(150*unit,Math.min(height,(1-point.y)*height/2))+'px';e.foot.style.left=((foot.x+1)*50)+'%';
@@ -149,7 +150,7 @@
  window.addEventListener('message',event=>{
   if(event.source!==parent)return;const d=event.data;if(!d||typeof d.type!=='string')return;
   if(d.type==='rank-battle-3d-freeze-actors'){freezeActors=d.value===true;return;}
-  if(d.type==='rank-battle-3d-effect-mode'){fx?.setMode?.(d.value);return;}
+  if(d.type==='rank-battle-3d-effect-mode'){effectMode=d.value;fx?.setMode?.(d.value);return;}
   if(d.type==='rank-battle-3d-sync'){
    paused=!!d.paused;visible=!!d.visible;busy=!!d.busy;
    const next=d.actors||[],changed=JSON.stringify(next.map(a=>[a.key,a.spec]))!==JSON.stringify(desired.map(a=>[a.key,a.spec]));desired=next;if(changed)revision++;
@@ -190,11 +191,12 @@
   const dt=last?Math.min(.1,Math.max(0,(now-last)/1000)):0;last=now;if(!visible||document.hidden)return;
   const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;
   if(w!==width||h!==height){width=w;height=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();camera.updateMatrixWorld()}
-  if(!paused){cameraTime+=dt;for(const e of actors.values())if(e.model.root.visible)pose(e,dt);updateCamera();fx?.update(dt);if(phase){phase.elapsed+=dt;updateField();updateTimeline();if(phase.elapsed>=phase.duration)complete();}}
+  diagnostics?.begin(now);
+  if(!paused){cameraTime+=dt;for(const e of actors.values())if(e.model.root.visible)pose(e,dt);diagnostics?.mark('characters');updateCamera();fx?.update(dt);diagnostics?.mark('effects');if(phase){phase.elapsed+=dt;updateField();updateTimeline();if(phase.elapsed>=phase.duration)complete();}}
   updateCamera();
-  for(const e of actors.values())if(e.model.root.visible){globalThis.RankBattleCamera?.faceParty(e.model.root,camera,cameraView?.mode==='team'?cameraView:view);e.model.root.updateMatrixWorld(true);labelPosition(e);}
+  for(const e of actors.values())if(e.model.root.visible){globalThis.RankBattleCamera?.faceParty(e.model.root,camera,cameraView?.mode==='team'?cameraView:view);e.model.root.updateWorldMatrix(true,false);labelPosition(e);}
   if(view.outcome){const feet=[...actors.values()].filter(e=>e.model.root.visible).map(e=>(1-new THREE.Vector3(e.model.root.position.x,e.model.root.position.y-5,e.model.root.position.z).project(camera).y)/2);const y=Math.max(...feet)+.025;if(Number.isFinite(y)&&y!==lastOutcomeY){lastOutcomeY=y;parent.postMessage({type:'rank-battle-3d-outcome-anchor',y},'*');}}else lastOutcomeY=null;
-  shadows?.update(actors);renderer.render(scene,camera);fx?.draw(camera);
+  shadows?.update(actors);diagnostics?.mark('overlays');renderer.render(scene,camera);diagnostics?.mark('renderSubmit');fx?.draw(camera);diagnostics?.mark('effectDraw');diagnostics?.end(now,{visibleActors:[...actors.values()].filter(e=>e.model.root.visible).length,effectMode,frozen:freezeActors});
  }catch(error){renderer.setAnimationLoop(null);parent.postMessage({type:"rank-battle-3d-error",message:String(error.message||error)},"*");}});
  window.addEventListener('pagehide',()=>{disposed=true;shadows?.dispose();fx?.dispose();arena?.dispose();renderer.setAnimationLoop(null);for(const e of actors.values())e.model.dispose();for(const t of textures.values())t.dispose();renderer.dispose()});
  status.textContent='';parent.postMessage({type:'rank-battle-3d-ready'},'*');

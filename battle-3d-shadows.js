@@ -5,15 +5,16 @@ function create(THREE,scene){
  const texture=new THREE.TextureLoader().load(data.image);texture.flipY=false;
  const geometry=new THREE.PlaneGeometry(data.size,data.size);geometry.rotateX(-Math.PI/2);
  const material=new THREE.MeshBasicMaterial({map:texture,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1,toneMapped:false});
- const entries=new Map(),point=new THREE.Vector3();
+ const entries=new Map(),point=new THREE.Vector3(),bodyCache=new Map();
  function update(actors){
   for(const [key,meshes]of entries)if(!actors.has(key)){for(const mesh of meshes)scene.remove(mesh);entries.delete(key);}
   for(const [key,e]of actors){let meshes=entries.get(key);if(!meshes){meshes=[new THREE.Mesh(geometry,material),new THREE.Mesh(geometry,material)];for(const m of meshes){m.renderOrder=1;scene.add(m);}entries.set(key,meshes);}
-   e.model.root.updateMatrixWorld(true);
+   if(!e.model.root.visible){for(const mesh of meshes)mesh.visible=false;continue;}
+   e.model.root.updateWorldMatrix(true,false);
    ['spine','head'].forEach((bone,i)=>{const mesh=meshes[i];mesh.visible=e.model.root.visible;if(!mesh.visible)return;
     const matrix=e.model.attachment([bone]);point.set(0,0,0);if(matrix)point.setFromMatrixPosition(matrix);point.applyMatrix4(e.model.root.matrixWorld);
     mesh.position.set(point.x,.2+i*.02,point.z);
-    const body=root.DENPA_ASSETS?.catalog?.bodyTypes?.find(b=>String(b.id)===String(e.model.bodyUid));
+    const uid=String(e.model.bodyUid);if(!bodyCache.has(uid))bodyCache.set(uid,root.DENPA_ASSETS?.catalog?.bodyTypes?.find(b=>String(b.id)===uid)||{});const body=bodyCache.get(uid);
     const scale=i===0?(body?.bodyWidthScale||1):(body?.headScale||1);mesh.scale.set(scale,1,scale);
    });
   }
