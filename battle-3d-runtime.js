@@ -196,7 +196,7 @@
   updateCamera();
   for(const e of actors.values())if(e.model.root.visible){globalThis.RankBattleCamera?.faceParty(e.model.root,camera,cameraView?.mode==='team'?cameraView:view);e.model.root.updateWorldMatrix(true,false);labelPosition(e);}
   if(view.outcome){const feet=[...actors.values()].filter(e=>e.model.root.visible).map(e=>(1-new THREE.Vector3(e.model.root.position.x,e.model.root.position.y-5,e.model.root.position.z).project(camera).y)/2);const y=Math.max(...feet)+.025;if(Number.isFinite(y)&&y!==lastOutcomeY){lastOutcomeY=y;parent.postMessage({type:'rank-battle-3d-outcome-anchor',y},'*');}}else lastOutcomeY=null;
-  shadows?.update(actors);diagnostics?.mark('overlays');renderer.render(scene,camera);diagnostics?.mark('renderSubmit');fx?.draw(camera);diagnostics?.mark('effectDraw');diagnostics?.end(now,{visibleActors:[...actors.values()].filter(e=>e.model.root.visible).length,effectMode,frozen:freezeActors});
+  shadows?.update(actors);diagnostics?.mark('overlays');renderer.render(scene,camera);diagnostics?.mark('renderSubmit');fx?.draw(camera);diagnostics?.mark('effectDraw');diagnostics?.end(now,{visibleActors:[...actors.values()].filter(e=>e.model.root.visible).length,effectMode,frozen:freezeActors,...fx?.diagnostics?.()});
  }catch(error){renderer.setAnimationLoop(null);parent.postMessage({type:"rank-battle-3d-error",message:String(error.message||error)},"*");}});
  window.addEventListener('pagehide',()=>{disposed=true;shadows?.dispose();fx?.dispose();arena?.dispose();renderer.setAnimationLoop(null);for(const e of actors.values())e.model.dispose();for(const t of textures.values())t.dispose();renderer.dispose()});
  status.textContent='';parent.postMessage({type:'rank-battle-3d-ready'},'*');

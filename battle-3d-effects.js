@@ -33,7 +33,11 @@
   if(!manifest||!root.effekseer||!renderer.getContext)return null;
   await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('エフェクト再生ライブラリの準備がタイムアウトしました')),15000);effekseer.initRuntime(root.RankBattleEffectWasm,()=>{clearTimeout(timer);resolve()},()=>{clearTimeout(timer);reject(Error('エフェクト再生ライブラリを読み込めません'))});});
   context=effekseer.createContext();context.init(renderer.getContext(),{instanceMaxCount:4000});
-  context.setRestorationOfStatesFlag(true);
+  // Three.js resets its state after the effect pass. Restoring that same state
+  // first forces synchronous GL readbacks (program, buffers and texture slots).
+  // Keep restoration for hosts without the complete public resetState API.
+  const resetRenderer=typeof renderer.resetState==='function';
+  context.setRestorationOfStatesFlag(!resetRenderer);
   context.setResourceLoader((path,ok,no)=>{
    const normalized=path.replace(/\\/g,'/'),id=normalized.split('/')[0];
    const value=resources.get(normalized)||resources.get(id+'/'+normalized.split('/').at(-1));
@@ -60,8 +64,9 @@
    async prepare(actors){const ids=new Set([...Object.values(manifest.conditions||{}),...Object.values(manifest.reactions||{})].flatMap(d=>d.effects||[]));for(const uid of [0x8602009b,...actors.map(a=>Number(a.actionUid))])for(const d of manifest.actions[uid]||[])for(const id of d?.effects||[])ids.add(id);for(const id of ids)await load(id);},
    play(ids,position,placements=[],resolve){if(mode==='off'||disposed)return;for(const [index,id] of (ids||[]).entries()){const effect=ready.get(id);if(!effect||disposed)continue;const info=placements[index]?.asset===id?placements[index]:placements.find(p=>p.asset===id);const transform=info&&resolve?resolve(info):{position,scale:1,rotation:[0,0,0]},at=transform.position;const handle=context.play(effect,at.x,at.y,at.z);if(handle){handle.setScale?.(transform.scale,transform.scale,transform.scale);handle.setRotation?.(...transform.rotation);active.push({handle,resolve:info&&info.attach!==0&&resolve?()=>resolve(info):null});}}},
    setMode(value){mode=['normal','hidden','off'].includes(value)?value:'normal';if(mode==='off'){context.stopAll();active.length=0;}},
-   update(dt){if(!context||disposed||mode==='off')return;for(let i=active.length-1;i>=0;i--){const item=active[i];if(item.handle.exists===false){active.splice(i,1);continue;}if(!item.resolve)continue;const t=item.resolve();item.handle.setLocation?.(t.position.x,t.position.y,t.position.z);item.handle.setRotation?.(...t.rotation);}let remaining=Math.max(0,dt)*60;while(remaining>0){const step=Math.min(1,remaining);context.update(step);remaining-=step;}},
-   draw(camera){if(!context||disposed||mode!=='normal'||!active.length)return;context.setProjectionMatrix(camera.projectionMatrix.elements);context.setCameraMatrix(camera.matrixWorldInverse.elements);context.draw();if(renderer.resetState)renderer.resetState();else renderer.state?.reset();},
+   update(dt){if(!context||disposed||mode==='off')return;for(let i=active.length-1;i>=0;i--){const item=active[i];if(item.handle.exists===false){active.splice(i,1);continue;}if(!item.resolve)continue;const t=item.resolve();item.handle.setLocation?.(t.position.x,t.position.y,t.position.z);item.handle.setRotation?.(...t.rotation);}if(!active.length)return;let remaining=Math.max(0,dt)*60;while(remaining>0){const step=Math.min(1,remaining);context.update(step);remaining-=step;}},
+   draw(camera){if(!context||disposed||mode!=='normal'||!active.length)return;context.setProjectionMatrix(camera.projectionMatrix.elements);context.setCameraMatrix(camera.matrixWorldInverse.elements);try{context.draw();}finally{if(resetRenderer)renderer.resetState();else renderer.state?.reset();}},
+   diagnostics(){return {activeEffects:active.length,effectStateReadback:!resetRenderer};},
    clear(){context.stopAll();active.length=0;},
    dispose(){disposed=true;context.stopAll();for(const effect of ready.values())context.releaseEffect(effect);ready.clear();effekseer.releaseContext(context);resources.clear();}
   };
