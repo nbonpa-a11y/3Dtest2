@@ -24,7 +24,7 @@
  root.RankBattleEffectResources={namespace:namespaceResources};
  root.createBattleEffects=async function(renderer,loadScript){
   const manifest=root.RankBattleVisualData,cache=new Map(),ready=new Map(),resources=new Map(),active=[];
-  let context=null,disposed=false,effectHz=0,pendingTime=0;
+  let context=null,disposed=false,mode='normal';
   // GEFT embeds visual resources but its SKFE can still request external game audio.
   // Audio is not played by this renderer. Supply valid silent PCM only for WAV references.
   const silentWave=new ArrayBuffer(46),wave=new DataView(silentWave);
@@ -58,11 +58,11 @@
   };
   return {
    async prepare(actors){const ids=new Set([...Object.values(manifest.conditions||{}),...Object.values(manifest.reactions||{})].flatMap(d=>d.effects||[]));for(const uid of [0x8602009b,...actors.map(a=>Number(a.actionUid))])for(const d of manifest.actions[uid]||[])for(const id of d?.effects||[])ids.add(id);for(const id of ids)await load(id);},
-   play(ids,position,placements=[],resolve){for(const [index,id] of (ids||[]).entries()){const effect=ready.get(id);if(!effect||disposed)continue;const info=placements[index]?.asset===id?placements[index]:placements.find(p=>p.asset===id);const transform=info&&resolve?resolve(info):{position,scale:1,rotation:[0,0,0]},at=transform.position;const handle=context.play(effect,at.x,at.y,at.z);if(handle){handle.setScale?.(transform.scale,transform.scale,transform.scale);handle.setRotation?.(...transform.rotation);active.push({handle,resolve:info&&info.attach!==0&&resolve?()=>resolve(info):null});}}},
-   setQuality(hz){if(context&&pendingTime>0)context.update(pendingTime*60);pendingTime=0;effectHz=[10,15].includes(hz)?hz:0;},
-   update(dt){if(!context||disposed)return;pendingTime+=Math.max(0,dt);if(effectHz&&pendingTime+1e-8<1/effectHz)return;dt=pendingTime;pendingTime=0;for(let i=active.length-1;i>=0;i--){const item=active[i];if(item.handle.exists===false){active.splice(i,1);continue;}if(!item.resolve)continue;const t=item.resolve();item.handle.setLocation?.(t.position.x,t.position.y,t.position.z);item.handle.setRotation?.(...t.rotation);}let remaining=Math.max(0,dt)*60;if(effectHz){context.update(remaining);return;}while(remaining>0){const step=Math.min(1,remaining);context.update(step);remaining-=step;}},
-   draw(camera){if(!context||disposed||!active.length)return;context.setProjectionMatrix(camera.projectionMatrix.elements);context.setCameraMatrix(camera.matrixWorldInverse.elements);context.draw();if(renderer.resetState)renderer.resetState();else renderer.state?.reset();},
-   clear(){context.stopAll();active.length=0;pendingTime=0;},
+   play(ids,position,placements=[],resolve){if(mode==='off'||disposed)return;for(const [index,id] of (ids||[]).entries()){const effect=ready.get(id);if(!effect||disposed)continue;const info=placements[index]?.asset===id?placements[index]:placements.find(p=>p.asset===id);const transform=info&&resolve?resolve(info):{position,scale:1,rotation:[0,0,0]},at=transform.position;const handle=context.play(effect,at.x,at.y,at.z);if(handle){handle.setScale?.(transform.scale,transform.scale,transform.scale);handle.setRotation?.(...transform.rotation);active.push({handle,resolve:info&&info.attach!==0&&resolve?()=>resolve(info):null});}}},
+   setMode(value){mode=['normal','hidden','off'].includes(value)?value:'normal';if(mode==='off'){context.stopAll();active.length=0;}},
+   update(dt){if(!context||disposed||mode==='off')return;for(let i=active.length-1;i>=0;i--){const item=active[i];if(item.handle.exists===false){active.splice(i,1);continue;}if(!item.resolve)continue;const t=item.resolve();item.handle.setLocation?.(t.position.x,t.position.y,t.position.z);item.handle.setRotation?.(...t.rotation);}let remaining=Math.max(0,dt)*60;while(remaining>0){const step=Math.min(1,remaining);context.update(step);remaining-=step;}},
+   draw(camera){if(!context||disposed||mode!=='normal'||!active.length)return;context.setProjectionMatrix(camera.projectionMatrix.elements);context.setCameraMatrix(camera.matrixWorldInverse.elements);context.draw();if(renderer.resetState)renderer.resetState();else renderer.state?.reset();},
+   clear(){context.stopAll();active.length=0;},
    dispose(){disposed=true;context.stopAll();for(const effect of ready.values())context.releaseEffect(effect);ready.clear();effekseer.releaseContext(context);resources.clear();}
   };
  };

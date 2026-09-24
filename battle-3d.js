@@ -2,12 +2,12 @@
  let frame=null,ready=false,prepared=false,failed=false,latest=null,signature='',waiters=[],serial=0;
  const pending=new Map(),host=()=>document.getElementById('battle-3d-stage');
  const post=data=>{if(ready&&!failed)frame.contentWindow.postMessage(data,'*')};
- const qualityInput=document.getElementById('compute-quality');
- if(qualityInput){qualityInput.value=globalThis.RankBattleComputeQuality?.read()||'auto';qualityInput.addEventListener?.('change',()=>{const value=globalThis.RankBattleComputeQuality?.save(qualityInput.value)||'auto';post({type:'rank-battle-3d-compute-quality',value});});}
+ const qualityInput=document.getElementById('effect-mode');
+ if(qualityInput){qualityInput.value=globalThis.RankBattleEffectSettings?.read()||'normal';qualityInput.addEventListener?.('change',()=>{const value=globalThis.RankBattleEffectSettings?.save(qualityInput.value)||'normal';post({type:'rank-battle-3d-effect-mode',value});});}
  const finishWait=()=>waiters.splice(0).forEach(f=>f());
  const cancel=()=>{for(const resolve of pending.values())resolve(false);pending.clear()};
  function sync(state,{enabled,busy,paused,skip=false}){
-  const area=host();if(!area)return;area.hidden=!enabled;const qualityLabel=document.getElementById('compute-quality-label');if(qualityLabel)qualityLabel.hidden=!enabled;
+  const area=host();if(!area)return;area.hidden=!enabled;const qualityLabel=document.getElementById('effect-mode-label');if(qualityLabel)qualityLabel.hidden=!enabled;
   if(!enabled){latest={...(latest||{}),visible:false};globalThis.RankBattleAudio?.sync(latest);post({type:'rank-battle-3d-sync',...latest,snap:true});cancel();finishWait();return;}
   const outcome=state.basic?.status==='ended'&&[0,1].includes(state.basic.winner);
   const actors=state.parties.flatMap((p,side)=>p.members.flatMap((a,slot)=>a?.registration?[{key:`${side}:${slot}`,side,slot,actionUid:a.antenna?.action?.action_uid,name:a.name??a.registration.name??'',janken:a.calculated?.janken??'',conditions:(a.conditions||[]).map(c=>({uid:c.uid,current:c.current})),hp:a.hp,maxHp:a.initialStats?.hp??a.hp,spec:RankAppearance.spec(a.registration),dead:outcome&&side===0?false:a.hp<=0,floating:(a.conditions||[]).some(c=>Number(c.uid)===0x870000C6&&c.current>0)}]:[]));
@@ -26,7 +26,7 @@
   if(e.data?.type==='rank-battle-3d-audio'&&pending.has(e.data.id))globalThis.RankBattleAudio?.play(e.data.sound);
   if(e.data?.type==='rank-battle-3d-title')globalThis.RankBattle3D.onTitle?.(String(e.data.text||''));
   if(e.data?.type==='rank-battle-3d-cards'&&pending.has(e.data.id))globalThis.RankBattle3D.onCards?.(e.data.updates);
-  if(e.data?.type==='rank-battle-3d-ready'){ready=true;post({type:'rank-battle-3d-compute-quality',value:globalThis.RankBattleComputeQuality?.read()||'auto'});post({type:'rank-battle-3d-sync',...latest});}
+  if(e.data?.type==='rank-battle-3d-ready'){ready=true;post({type:'rank-battle-3d-effect-mode',value:globalThis.RankBattleEffectSettings?.read()||'normal'});post({type:'rank-battle-3d-sync',...latest});}
   if(e.data?.type==='rank-battle-3d-prepared'){prepared=true;finishWait();}
   if(e.data?.type==='rank-battle-3d-done'){const resolve=pending.get(e.data.id);pending.delete(e.data.id);resolve?.(!!e.data.played);}
   if(e.data?.type==='rank-battle-3d-warning'){console.warn(e.data.message);const area=host();if(!area.querySelector?.('.battle-3d-warning')){const message=document.createElement('p');message.className='battle-3d-warning';message.textContent=e.data.message;area.append(message);}}

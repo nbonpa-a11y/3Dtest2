@@ -68,14 +68,13 @@ try{
  baseAnimator=createBaseAnimator();applyBodyType();applyFace();await setHead();
  for(const [slot,uid]of Object.entries(spec.equipment||{})){await setEquipment3d(slot,uid);if(status.textContent.includes('エラー'))throw Error(status.textContent)}
  await shared.imagesReady();updateMotion();
- let poseElapsed=0,poseDue=true;
  let selectedMotion=baseMotion,selectedName="待機";const blend=globalThis.RankBattlePoseBlend?.create(root);
  return {root,bodyUid:state.body,
  attachment(names){const name=names.find(n=>baseMotion.bones?.[n]!==undefined);if(!name||!baseMotion.arrays.pose)return null;const frame=Math.floor(motionTime*baseMotion.fps)%baseMotion.frames,r=bodyRecord();return rigidPose(baseMotion.arrays.pose,(frame*baseMotion.poseJoints+baseMotion.bones[name])*12,r.bodyScale,r.bodyWidthScale);},
- setMotion(name){const motion=shared.motions.get(name);if(!motion)throw Error('Unknown battle motion '+name);if(motion===selectedMotion)return;const hard=/ダウン|倒れる|ダメージ|回避|ふらふら|起き上がる/;if(name==='起き上がる'||!hard.test(name)&&(!hard.test(selectedName)||selectedName==='ダメージ'||selectedName==='起き上がる'))blend?.begin();else blend?.cancel();poseDue=true;selectedName=name;selectedMotion=motion;baseMotion=motion;motionTime=0;baseAnimator=createBaseAnimator();const r=bodyRecord();baseAnimator.setBodyType(r.bodyScale,r.headScale,r.bodyWidthScale);
+ setMotion(name){const motion=shared.motions.get(name);if(!motion)throw Error('Unknown battle motion '+name);if(motion===selectedMotion)return;const hard=/ダウン|倒れる|ダメージ|回避|ふらふら|起き上がる/;if(name==='起き上がる'||!hard.test(name)&&(!hard.test(selectedName)||selectedName==='ダメージ'||selectedName==='起き上がる'))blend?.begin();else blend?.cancel();selectedName=name;selectedMotion=motion;baseMotion=motion;motionTime=0;baseAnimator=createBaseAnimator();const r=bodyRecord();baseAnimator.setBodyType(r.bodyScale,r.headScale,r.bodyWidthScale);
  if(head){const rec=P.headModels.find(x=>String(x.id)===String(state.head));headAnimator=createRigidAnimator(head,rec.animation,baseMotion);applyRigid(headAnimator)}
  if(antenna){antennaAnimator=createRigidAnimator(antenna,antennaAnimation,baseMotion);applyRigid(antennaAnimator)}rebuildEquipmentAnimators();updateMotion();},
- update(seconds,delta,interval=0){poseElapsed+=Math.max(0,Number(delta)||0);if(delta!==0&&!poseDue&&interval>0&&poseElapsed+1e-8<interval)return;const elapsed=poseElapsed;poseElapsed=0;poseDue=false;blend?.before();motionTime=seconds;updateMotion();blend?.apply(elapsed);rareTime=delta===undefined?seconds:rareTime+elapsed;updateRare(rareTime)},
+ update(seconds,delta){blend?.before();motionTime=seconds;updateMotion();blend?.apply(delta);rareTime=delta===undefined?seconds:rareTime+Math.max(0,delta);updateRare(rareTime)},
  dispose(){dispose(base);dispose(head);dispose(antenna);for(const item of equipmentObjects.values())dispose(item.object);baseAsset.mesh.geometry.dispose();root.parent?.remove(root)}
  };
 }catch(error){dispose(base);dispose(head);dispose(antenna);for(const item of equipmentObjects.values())dispose(item.object);baseAsset?.mesh?.geometry.dispose();throw error}
