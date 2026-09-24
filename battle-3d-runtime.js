@@ -60,7 +60,7 @@
 
   width=0;}
  function fieldTransform(info){return RankBattlePlacement.field(THREE,info,view.side);}
- function updateTimeline(){if(!phase)return;
+ function updateTimeline(){if(!phase)return;const cardUpdates=[];
   for(const event of phase.timeline){if(event.played||event.at>phase.elapsed+1e-8)continue;event.played=true;if(event.kind==='sound'){parent.postMessage({type:'rank-battle-3d-audio',id:phase.id,sound:event.sound},'*');continue;}if(event.kind==='title'){parent.postMessage({type:'rank-battle-3d-title',text:event.text},'*');continue;}const e=event.entry,s=event.step;
    if(event.kind==='cover-camera'){
     cameraView={mode:'team',coverReaction:true,battleSize:view.battleSize,side:view.targetSide,count:desired.filter(a=>a.side===view.targetSide).length};cameraAnchor=null;cameraTime=0;
@@ -69,7 +69,7 @@
     for(const actor of actors.values()){const shown=actor.track.actor.side===view.targetSide;actor.model.root.visible=shown;actor.label.hidden=actor.foot.hidden=!shown;}
     updateCamera();continue;
    }
-   if(event.kind==='cards')parent.postMessage({type:'rank-battle-3d-cards',id:phase.id,updates:s.cardUpdates},'*');
+   if(event.kind==='cards')cardUpdates.push(...s.cardUpdates);
    else if(event.kind==='effect')fx?.play(s.effects,e.model.root.position,s.effectPlacements||[],p=>RankBattlePlacement.effect(THREE,e,p,camera));
    else{const previous=e.lastPopup;let data=s;
     // Keep rapid successive hits visible together. Cover hits already carry all values.
@@ -77,6 +77,7 @@
     setLabel(e,data);e.lastPopup={at:event.at,data};e.amountAge=0;
    }
   }
+  if(cardUpdates.length)parent.postMessage({type:'rank-battle-3d-cards',id:phase.id,updates:cardUpdates},'*');
  }
  function updateField(){if(!phase?.field||phase.fieldPlayed||phase.elapsed<phase.field.effectAt)return;phase.fieldPlayed=true;fx?.play(phase.field.effects,new THREE.Vector3(0,0,0),phase.field.placements,fieldTransform);}
  function clearLabels(){labels.clear();for(const e of actors.values()){e.lastPopup=null;e.amountSignature=null;e.label.textContent='';e.label.className='amount';globalThis.RankBattleNumbers?.clear(e.label);e.label.style.transform='translate(-50%,-50%)';e.foot.textContent='';}}
