@@ -1,6 +1,22 @@
 /* Original SSFB bitmap glyphs, not an installed or substitute system font. */
 (function(root){'use strict';
- const cache=new Map();
+ const cache=new Map(),bitmaps=new Map();
+ // SVG morphology is expensive when the browser rerasterizes scaled digit layers.
+ // Rasterize each fixed glyph/tone once, then animate the reusable bitmap.
+ function bitmap(text,tone){return bitmaps.get(tone+':'+text);}
+ async function prepare(){
+  if(!root.Image||!root.document?.createElement)return;
+  const probe=root.document.createElement('canvas');if(!probe.getContext?.('2d')||!probe.toDataURL)return;
+  for(const tone of ['damage','enhanced','heal','ap'])for(const text of '0123456789,+-'){
+   const key=tone+':'+text;if(bitmaps.has(key))continue;const source=svg(text,tone);if(!source)continue;
+   await new Promise(resolve=>{const image=new root.Image();image.onerror=resolve;image.onload=()=>{try{
+    const canvas=root.document.createElement('canvas'),scale=4;
+    canvas.width=Math.ceil(source.width*48*scale);canvas.height=Math.ceil(source.height*48*scale);
+    const ctx=canvas.getContext('2d');if(ctx){ctx.drawImage(image,0,0,canvas.width,canvas.height);bitmaps.set(key,{...source,url:canvas.toDataURL('image/png')});}
+   }catch{}resolve();};image.src=source.url;});
+  }
+ }
+
  // GSssTextProcessor::Impl::UpdateTextAnimation 0x73a508..0x73a5c8:
  // 70% of the animation staggers glyphs; each glyph uses the remaining 30%.
  // Type 4 virtual handler 0x73ab4c: scale=2-t^3, alpha=t, no translation.
@@ -26,7 +42,7 @@
   element.textContent=text;element.className+=' native-number';element.style.width=image.width+'em';element.style.height=image.height+'em';
   if(element.ownerDocument?.createElement){
    element.setAttribute('data-digit-animation','');element.style.backgroundImage='none';a.digits=[];let x=0;
-   for(const c of value){const digit=element.ownerDocument.createElement('span'),glyph=svg(c,tone),g=root.RankBattleNumberGlyphs.glyphs[c];digit.className='number-digit';digit.style.backgroundImage='url("'+glyph.url+'")';digit.style.width=glyph.width+'em';digit.style.height=glyph.height+'em';digit.style.left=x/48+'em';element.append(digit);a.digits.push(digit);x+=g.advance;}
+   for(const c of value){const digit=element.ownerDocument.createElement('span'),glyph=bitmap(c,tone)||svg(c,tone),g=root.RankBattleNumberGlyphs.glyphs[c];digit.className='number-digit';digit.style.backgroundImage='url("'+glyph.url+'")';digit.style.width=glyph.width+'em';digit.style.height=glyph.height+'em';digit.style.left=x/48+'em';element.append(digit);a.digits.push(digit);x+=g.advance;}
    animate(element,0);
   }else element.style.backgroundImage='url("'+image.url+'")';
  }
@@ -36,5 +52,5 @@
   if(a.critical){const scale=frame<=10?.7+.5*frame/10:frame<=20?1.2-.2*(frame-10)/10:1;const opacity=Math.max(0,Math.min(1,(frame-2)/6));element.style.setProperty?.('--critical-scale',String(scale));element.style.setProperty?.('--critical-opacity',String(opacity));}if(frame>=30)element.numberAnimation=null;
  }
  function clear(element){element.numberAnimation=null;element.removeAttribute?.('data-digit-animation');element.querySelectorAll?.('.number-digit').forEach(n=>n.remove());element.style.backgroundImage='';element.style.width='';element.style.height='';}
- root.RankBattleNumbers={svg,render,clear,animate,glyphPhase};if(typeof module!=='undefined')module.exports=root.RankBattleNumbers;
+ root.RankBattleNumbers={svg,render,clear,animate,glyphPhase,prepare};if(typeof module!=='undefined')module.exports=root.RankBattleNumbers;
 })(globalThis);

@@ -142,6 +142,7 @@
   entry.model.root.traverse(node=>{for(const material of (Array.isArray(node.material)?node.material:[node.material]))if(material)for(const value of Object.values(material))if(value?.isTexture&&!seen.has(value)){seen.add(value);renderer.initTexture(value);}});
   await new Promise(resolve=>setTimeout(resolve,0));
  }}
+ await globalThis.RankBattleNumbers?.prepare?.();
  await fx?.prepare(desired);status.textContent='';parent.postMessage({type:'rank-battle-3d-prepared'},'*');
  }catch(e){status.textContent='3D表示を準備できませんでした';parent.postMessage({type:'rank-battle-3d-error',message:String(e.message||e)},'*')}
  finally{building=false}
