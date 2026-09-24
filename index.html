@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ja">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rankbattle — パーティ登録</title><link rel="stylesheet" href="party.css"><link rel="stylesheet" href="party-appearance.css"></head>
+<body class="party-setup">
+<header class="topbar"><a class="brand" href="index.html"><img class="brand-image" src="images/brand/ranking-battle.png" alt=""><span>ランキングバトル<small>SIMULATOR</small></span></a><nav aria-label="現在のステップ"><span class="step active"><b>01</b> パーティ登録</span></nav><div id="save-state" role="status" hidden></div></header>
+<main>
+ <section class="intro"><div><p class="eyebrow">BUILD YOUR MATCHUP</p><h1>対戦するパーティをつくる</h1><p class="lead">両者それぞれ8人まで。個体と装備を選んで、ステータスを確認しましょう。</p></div><div class="toolbar"><button id="battle-open" class="primary app-navigation-button">バトル画面へ →</button></div></section>
+ <div id="notice" role="status" aria-live="polite" hidden></div>
+ <section class="parties" aria-label="パーティ一覧"><div id="party-0" class="party ally"></div><div class="versus" aria-hidden="true">VS</div><div id="party-1" class="party enemy"></div></section>
+ <section id="workspace" class="workspace" aria-label="個体の編集"></section>
+ <footer><span>Rankbattle / Party setup</span><a href="パーティ登録_README.md">データと保存について</a></footer>
+</main>
+<dialog id="equipment-dialog" aria-labelledby="equipment-title"><div class="dialog-top"><div><p class="eyebrow">EQUIPMENT</p><h2 id="equipment-title">装備を選ぶ</h2></div><button id="close-equipment" class="icon-button" aria-label="装備選択を閉じる">×</button></div><label class="search-label">装備名・効果で検索<input id="equipment-query" type="search" placeholder="例：ひっちゅう、すばやさ" autocomplete="off"></label><p id="equipment-count" class="muted" aria-live="polite"></p><div id="equipment-results"></div><button id="equipment-more" class="secondary" hidden>さらに表示</button></dialog>
+<script src="個体ステータス_装備_能力_参考用/data/resistance-icons-data.js"></script>
+<script src="data/party-data.js"></script><script src="party-engine.js"></script><script src="data/face-data.js"></script><script src="party-model.js"></script><script src="equipment-readings.js"></script><script src="data/appearance-data.js"></script><script src="party-appearance.js"></script><script src="party-app.js"></script>
+<script src="battle/battle-runtime.js"></script>
+<script src="battle-navigation.js"></script>
+<script src="vendor/qrcode.js"></script><script src="vendor/jsQR.js"></script><script src="party-share-rb5.js"></script><script src="party-share-codec.js"></script><script src="party-share.js"></script>
+</body></html>

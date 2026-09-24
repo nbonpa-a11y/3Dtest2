@@ -1,0 +1,180 @@
+/* SSPB D1152000: QuestStates(426), gauge(415), command(425), pop(422).
+   CSS reproduces the decoded proportions; frame artwork remains a CSS approximation. */
+.battle-roster{container-type:inline-size;gap:clamp(2px,.6vw,9px)}
+.battle-roster .combatant{--card-u:calc(100cqw / 1280);gap:0;padding:calc(12 * var(--card-u)) calc(6 * var(--card-u));border-radius:calc(12 * var(--card-u));min-height:calc(156 * var(--card-u));overflow:visible}
+.battle-roster .combatant-level{font-size:calc(17 * var(--card-u));line-height:1.1;height:calc(22 * var(--card-u));padding-right:40%}
+.battle-roster .combatant-name{font-size:calc(15 * var(--card-u));line-height:1.2;min-height:calc(24 * var(--card-u));margin:0;padding-right:30%;white-space:normal}
+.battle-roster .combatant-antenna{font-size:calc(10 * var(--card-u));min-height:calc(14 * var(--card-u));line-height:1.2}
+.battle-roster .combatant-portrait-holder{width:52%;height:calc(76 * var(--card-u));top:calc(-22 * var(--card-u));right:calc(-3 * var(--card-u))}
+.battle-roster .resource-row{font-size:calc(16 * var(--card-u));line-height:1;flex-wrap:nowrap;min-height:calc(21 * var(--card-u));gap:0}
+.battle-roster .resource-label{font-size:inherit;font-weight:800}
+.battle-roster .resource-number{font-size:calc(15 * var(--card-u));line-height:1.1}
+.battle-roster .resource-row.ap{padding-left:28%}
+.battle-roster .resource-bar{box-sizing:border-box;width:100%;height:calc(9 * var(--card-u));min-height:2px;background:#231a24!important;margin:0 0 calc(4 * var(--card-u));border:calc(1.5 * var(--card-u)) solid #320b20;box-shadow:none;overflow:hidden}
+.battle-roster .resource-bar.ap{width:72%;align-self:flex-end}
+.resource-fill{display:block;height:100%;background:linear-gradient(90deg,#a4f122,#38c51b)}
+.resource-bar.ap .resource-fill{background:linear-gradient(90deg,#06d2f4,#0082e9)}
+.command-dock{container-type:inline-size}
+.party-commands{gap:2%;padding-inline:2%;grid-template-columns:repeat(4,minmax(0,1fr))}
+.party-commands button{font-size:clamp(9px,2.05cqw,26px);min-height:clamp(28px,4.5cqw,58px);line-height:1.15;border-radius:12px;text-shadow:0 1px #fff7}
+.individual-commands{width:min(100%,560px);box-sizing:border-box}
+.card-result{font-size:clamp(7px,1.25cqw,16px);line-height:1.2;overflow-wrap:anywhere}
+
+/* Motion screen: SSPB 425 puts commands and states over the arena, not below it. */
+.arena.motion-arena{position:relative;container-type:inline-size;padding:0;aspect-ratio:1280/720;isolation:isolate;overflow:hidden}
+.motion-arena .battle-3d-stage{position:absolute;inset:0;margin:0;width:100%;height:100%;border:0;border-radius:inherit}
+.motion-arena>.team-heading{display:none}
+.motion-arena>.command-dock{position:absolute;z-index:3;left:1.25%;right:1.25%;bottom:1.5%;padding:0;border:0;background:none;container-type:normal}
+.motion-arena .party-commands{padding:0;gap:1.9%;margin:0 0 3%;grid-template-columns:repeat(4,minmax(0,1fr))}
+.motion-arena .party-commands button{min-height:0;height:4.5cqw;padding:0;font-size:2cqw}
+.motion-arena .ally-roster{padding:0;gap:.6%;grid-template-columns:repeat(8,minmax(0,1fr))}
+.motion-arena .combatant{min-height:0}
+.motion-arena .combatant-antenna,.motion-arena .position-label{display:none}
+.motion-arena .combatant-level{display:block}
+.motion-arena .arena-center{position:absolute;z-index:2;top:77.778%;left:4%;right:4%;min-height:0;padding:0;transform:translateY(-50%);pointer-events:none}
+.motion-arena #arena-message{font-size:2.5cqw;line-height:1.3;color:white;text-align:center;white-space:pre-line;letter-spacing:0;text-shadow:2px 2px 1px #30212e,-1px -1px 1px #30212e}
+.motion-arena #arena-message:empty{display:none}
+.motion-arena #arena-message .log-actor.ally,.motion-arena #arena-message .log-actor.enemy{color:inherit;background:none;padding:0}
+.motion-arena:not(.game-presentation):not(.motion-ended) .arena-center{top:63.333%;font-size:1.6cqw}
+.motion-arena.game-presentation>.command-dock .party-commands,.motion-arena.motion-ended>.command-dock .party-commands{display:none}
+.motion-arena>.enemy-roster{position:absolute;z-index:1;left:4%;right:4%;top:12%;height:39%;padding:0;grid-template-columns:repeat(8,minmax(0,1fr));gap:0}
+.motion-arena>.enemy-roster .combatant{min-height:0;background:transparent;border-color:transparent;box-shadow:none;padding:0}
+.motion-arena>.enemy-roster .combatant>*{display:none}
+.motion-arena>.enemy-roster .combatant:focus-visible{outline:2px solid #ffe083}
+.motion-arena.game-presentation>.enemy-roster,.motion-arena.motion-ended>.enemy-roster{display:none}
+.motion-arena #enemy-command-dock,.motion-arena #ally-command-dock{position:absolute;z-index:5;bottom:0;left:0;width:100%}
+.motion-arena>#enemy-command-dock{bottom:2%;left:2%;width:96%}
+.motion-arena .individual-commands{width:min(70%,560px);max-height:45cqw;overflow:auto;margin:0;font-size:1.3cqw;padding:1cqw}
+.motion-arena .individual-commands header{gap:1cqw;margin-bottom:1cqw}
+.motion-arena .individual-commands h3{font-size:1.6cqw}
+.motion-arena .individual-commands button{min-height:0;padding:.6cqw;font-size:1.3cqw}
+.motion-arena #remaining-rounds{z-index:4;font-size:2cqw;padding:.6cqw 1.2cqw}
+
+.motion-arena #arena-message{min-height:0}
+.motion-arena.game-presentation #arena-message:not(:empty){animation:native-telop-in calc(10s / 60) linear both}
+@keyframes native-telop-in{0%{transform:scale(.7);opacity:0}70%{opacity:1}100%{transform:scale(1);opacity:1}}
+
+/* 3D labels are in the arena; card-attached results and their reserved gap are disabled. */
+.motion-arena .card-result{display:none!important}
+.motion-arena .ally-roster{padding-top:0!important;padding-bottom:0!important}
+.motion-arena .arena-center{top:auto;transform:translateY(-100%)}
+
+/* Selected card CommandDummy anchor; result scene has no cards. */
+.motion-arena > .individual-commands{z-index:8;box-shadow:0 3px 14px #0008}
+.motion-arena.motion-ended .battle-roster{display:none!important}
+.motion-arena.motion-ended .arena-center{top:50%;bottom:auto;transform:translateY(-50%)}
+
+.motion-arena .individual-commands{width:min(36%,360px);padding:.65cqw;max-height:40cqw}
+.motion-arena .individual-commands header{gap:.4cqw;margin-bottom:.5cqw}
+.motion-arena .individual-commands h3{margin:.2cqw 0;font-size:1.4cqw}
+.motion-arena .individual-navigation{gap:.3cqw}
+.motion-arena .individual-buttons{gap:.5cqw}
+.motion-arena .individual-commands button{padding:.4cqw;font-size:1.2cqw}
+.motion-arena #enemy-roster{pointer-events:none}
+
+/* Keep the common portrait scale; enlarge the rendered image around its head. */
+.battle-roster .combatant-portrait img{transform:scale(2);transform-origin:50% 35%}
+.motion-arena .individual-commands{padding:.95cqw}
+.motion-arena .individual-commands button{padding:.75cqw .55cqw;font-size:1.55cqw;min-height:3.2cqw}
+.motion-arena .individual-commands h3{font-size:1.8cqw;margin:.35cqw 0}
+.motion-arena .individual-buttons{gap:.75cqw}
+.motion-arena .individual-commands header{margin-bottom:.75cqw}
+
+.motion-arena.motion-ended .arena-center{top:auto;bottom:3%;transform:none}
+
+.motion-arena #arena-message.telop-source{position:absolute;visibility:hidden;pointer-events:none}
+.battle-scrolling-log{height:5.625cqw;font-size:2.5cqw;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+.battle-scrolling-log[hidden]{display:none}
+.battle-scrolling-line{height:2.8125cqw;flex:0 0 2.8125cqw;white-space:pre;text-align:center;background-size:auto 1.6em;background-position:center;background-repeat:no-repeat;animation:telop-scroll-up .2s linear both}
+@keyframes telop-scroll-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+
+.motion-arena.motion-ended .arena-center{top:var(--outcome-y,78%);bottom:auto;transform:none}
+
+/* Native telop: 36 px row advance at 1280 px (Impl+0xb4), 2 visible rows. */
+.motion-arena.game-presentation:not(.motion-ended) .arena-center{left:10%;right:10%}
+
+/* Native QuestBattleStates: 144-wide frame; transparent artwork is unmodified.
+   Coordinates: origin (72,80), Lv(-64,30), Name(0,8), HP(60,-21), AP(60,-53). */
+.battle-roster .combatant:not(.vacant){height:calc(184 * var(--card-u));min-height:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none;display:block;opacity:1;filter:none}
+.battle-roster .combatant:not(.vacant)::before{content:"";position:absolute;left:0;right:0;top:calc(46 * var(--card-u));height:calc(138 * var(--card-u));background:url("images/battle-ui/Battle00States00.png") center/100% 100% no-repeat;pointer-events:none}
+.battle-roster .combatant.stopped:not(.fallen)::before{background-image:url("images/battle-ui/Battle00States03.png")}
+.battle-roster .combatant.fallen::before{background-image:url("images/battle-ui/Battle00States02.png")}
+.battle-roster .combatant:not(.vacant)>:not(.card-result){opacity:1!important;filter:none!important}
+.battle-roster .combatant.stopped .combatant-portrait-holder,.battle-roster .combatant.fallen .combatant-portrait-holder{filter:brightness(.5)!important}
+.battle-roster .combatant-level,.battle-roster .combatant-name{position:absolute;left:calc(8 * var(--card-u));padding:0;margin:0;min-height:0;white-space:nowrap;overflow:hidden;max-width:calc(128 * var(--card-u))}
+.battle-roster .combatant-level{top:calc(33 * var(--card-u));height:calc(32 * var(--card-u));font-size:calc(17 * var(--card-u))}
+.battle-roster .combatant-name{top:calc(58 * var(--card-u));height:calc(26 * var(--card-u));font-size:calc(15 * var(--card-u))}
+.battle-roster .combatant-portrait-holder{top:calc(3 * var(--card-u));right:calc(4 * var(--card-u));width:calc(72 * var(--card-u));height:calc(72 * var(--card-u));z-index:0}
+.battle-roster .combatant-portrait img{transform:scale(2);transform-origin:65% 35%}
+.battle-roster .combatant-antenna,.battle-roster .position-label{display:none}
+.battle-roster .resource-row{position:absolute;left:calc(8 * var(--card-u));right:calc(12 * var(--card-u));width:auto;height:calc(28 * var(--card-u));font-size:calc(16 * var(--card-u));display:flex;align-items:center;justify-content:space-between;padding:0}
+.battle-roster .resource-row.hp{top:calc(89 * var(--card-u))}
+.battle-roster .resource-row.ap{top:calc(121 * var(--card-u));left:calc(41 * var(--card-u))}
+.battle-roster .resource-number{font-size:calc(15 * var(--card-u));height:calc(28 * var(--card-u))}
+.battle-roster .resource-label{font-size:calc(16 * var(--card-u));height:calc(28 * var(--card-u));transform:translateY(calc(6 * var(--card-u)))}
+.battle-roster .resource-bar{position:absolute;top:calc(102 * var(--card-u));left:calc(36 * var(--card-u));width:calc(98 * var(--card-u));height:calc(12 * var(--card-u));margin:0;transform:none;border:0;background:#24171f!important;overflow:visible}
+.battle-roster .resource-bar.ap{top:calc(134 * var(--card-u));left:calc(67 * var(--card-u));width:calc(67 * var(--card-u))}
+.battle-roster .resource-bar::after{content:"";position:absolute;inset:0;background:url("images/battle-ui/Battle00BarBase01FrameHP.png") center/100% 100%}
+.battle-roster .resource-bar.ap::after{background-image:url("images/battle-ui/Battle00BarBase01Frame.png")}
+.battle-roster .resource-fill{height:66.667%;position:relative;top:16.667%;background-image:url("images/battle-ui/Window_Battle00BarHP.png");background-size:100% 100%}
+.battle-roster .resource-bar.ap .resource-fill{background-image:url("images/battle-ui/Window_Battle00BarAP.png");background-size:100% 100%}
+.battle-roster .combatant-status-icons{position:absolute;left:calc(2.4 * var(--card-u));top:calc(2.4 * var(--card-u));width:calc(76 * var(--card-u));height:calc(40 * var(--card-u));display:grid;grid-template-columns:repeat(4,calc(19 * var(--card-u)));grid-auto-rows:calc(20 * var(--card-u));gap:0;margin:0;z-index:2;align-content:end}
+.battle-roster .combatant-status-icon{width:calc(19.2 * var(--card-u));height:calc(19.2 * var(--card-u));max-width:none}
+.battle-roster .order-label{position:absolute;top:calc(163 * var(--card-u));left:0;right:0;font-size:calc(10 * var(--card-u));line-height:1.1;min-height:calc(20 * var(--card-u));color:white;text-shadow:1px 1px 2px #000}
+.native-card-text{color:transparent!important;text-shadow:none!important;background-repeat:no-repeat;background-position:left center;background-size:var(--card-text-width) var(--card-text-height);width:var(--card-text-width)}
+.resource-number.native-card-text{background-position:right center}
+.motion-arena>.enemy-roster .combatant::before{display:none}
+
+/* Native condition slots 0..3 are the lower row; 4..7 are above them. */
+.battle-roster .combatant-status-icon:nth-child(-n+4){grid-row:2}
+.battle-roster .combatant-status-icon:nth-child(n+5){grid-row:1}
+.battle-roster .combatant-status-icon:nth-child(4n+1){grid-column:1}
+.battle-roster .combatant-status-icon:nth-child(4n+2){grid-column:2}
+.battle-roster .combatant-status-icon:nth-child(4n+3){grid-column:3}
+.battle-roster .combatant-status-icon:nth-child(4n+4){grid-column:4}
+.battle-roster .combatant-status-icon:nth-child(n+9){display:none}
+
+/* Compose gauge parent positions instead of flex-distributing its labels. */
+.battle-roster .resource-row{height:calc(16 * var(--card-u));left:calc(10 * var(--card-u));right:auto;width:calc(118 * var(--card-u));display:block}
+.battle-roster .resource-row.ap{left:calc(41 * var(--card-u));width:calc(87 * var(--card-u))}
+.battle-roster .resource-number{position:absolute;right:0;top:0;height:calc(16 * var(--card-u));line-height:1}
+.battle-roster .resource-label{position:absolute;left:0;top:calc(7 * var(--card-u));height:calc(16 * var(--card-u));transform:none;line-height:1}
+.battle-roster .resource-bar{clip-path:polygon(4% 0,100% 0,100% 100%,0 100%)}
+.battle-roster .resource-bar.ap{clip-path:polygon(6% 0,100% 0,100% 100%,0 100%)}
+.battle-roster .resource-fill{background-color:transparent;box-shadow:none}
+.battle-roster .order-label{left:calc(8 * var(--card-u));right:calc(8 * var(--card-u));top:calc(162 * var(--card-u));min-height:0;max-height:calc(20 * var(--card-u));overflow:hidden}
+.motion-arena .party-commands{width:90.15625%;margin:0 auto 3%;gap:2.34375cqw}
+.motion-arena .party-commands button{height:4.6875cqw;min-height:0;padding:0;border:0;border-radius:0;background:transparent url("images/battle-ui/Battle00Btn00.png") center/100% 100% no-repeat;box-shadow:none;outline:0;font-size:1.953125cqw;font-weight:bold;color:white;text-shadow:0 1px 2px #21657b;letter-spacing:0}
+.motion-arena .party-commands button[aria-pressed=true]{background-image:url("images/battle-ui/Battle00Btn01.png");color:white;box-shadow:none;outline:0}
+.motion-arena .party-commands button:focus-visible{outline:2px solid #fff6b5;outline-offset:1px}
+
+/* Ink bounds exclude font canvas bearings, while retaining full outline pixels. */
+.battle-roster .resource-number{top:calc(-4 * var(--card-u));height:calc(24 * var(--card-u))}
+.battle-roster .resource-label{top:calc(3 * var(--card-u));height:calc(24 * var(--card-u))}
+
+/* BtnBattle Text_Btn00: native font0 at 25, bitmap scale floor(2500/61)/100. */
+.motion-arena .party-commands button{position:relative;color:transparent!important;text-shadow:none}
+.motion-arena .party-commands button::after{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);height:1.90625cqw;background-position:center;background-size:100% 100%;background-repeat:no-repeat;pointer-events:none}
+.motion-arena #party-auto::after{width:6.1875cqw;background-image:url("images/battle-ui/party-auto-label.svg")}
+.motion-arena #party-attack::after{width:9.1875cqw;background-image:url("images/battle-ui/party-attack-label.svg")}
+.motion-arena #party-guard::after{width:4.6875cqw;background-image:url("images/battle-ui/party-guard-label.svg")}
+.motion-arena #retire-battle::after{width:6.1875cqw;background-image:url("images/battle-ui/retire-battle-label.svg")}
+
+/* Draw gauge numbers after the gauge artwork, without changing native coordinates. */
+.battle-roster .resource-row{z-index:2;pointer-events:none}
+.battle-roster .resource-bar{z-index:1}
+/* QuestBattleStates / 01ActiveOnOff: dead Mask, black multiply at alpha .5. */
+.battle-roster .combatant.fallen::before,
+.battle-roster .combatant.fallen>:not(.card-result):not(.combatant-status-icons){filter:brightness(.5)!important}
+.motion-arena #party-auto[aria-pressed=true]::after{background-image:url("images/battle-ui/party-auto-selected-label.svg")}
+.motion-arena #party-attack[aria-pressed=true]::after{background-image:url("images/battle-ui/party-attack-selected-label.svg")}
+.motion-arena #party-guard[aria-pressed=true]::after{background-image:url("images/battle-ui/party-guard-selected-label.svg")}
+.motion-arena #retire-battle[aria-pressed=true]::after{background-image:url("images/battle-ui/retire-battle-selected-label.svg")}
+
+/* A stopped living card is not GrayOut: retain opaque gauges and frame. */
+.battle-roster .combatant.stopped:not(.fallen){opacity:1!important;filter:none!important}
+.battle-roster .combatant.stopped:not(.fallen)>:not(.combatant-portrait-holder){opacity:1!important;filter:none!important}
+/* Preserve the native text anchor; compensate the bitmap ink's vertical bearing. */
+.battle-roster .resource-number{top:calc(-1 * var(--card-u))}
+/* Move the command row down by one 25px line at the 1280px reference width. */
+.motion-arena .party-commands{transform:translateY(1.953125cqw)}

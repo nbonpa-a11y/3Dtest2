@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ja">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rankbattle — バトル画面</title><link rel="stylesheet" href="party.css"><link rel="stylesheet" href="battle-screen.css"><link rel="stylesheet" href="party-appearance.css"><link rel="stylesheet" href="battle-portraits.css"><link rel="stylesheet" href="battle-3d.css"><link rel="stylesheet" href="battle-native-ui.css"></head>
+<body class="battle-page">
+<header class="topbar"><a class="brand" href="index.html"><img class="brand-image" src="images/brand/ranking-battle.png" alt=""><span>ランキングバトル<small>SIMULATOR</small></span></a><nav aria-label="現在のステップ"><span class="step active"><b>02</b> バトル</span></nav></header>
+<main class="battle-main">
+ <a class="battle-registration-link primary app-navigation-button" href="index.html">←パーティ登録へ</a>
+ <div class="battle-heading"><div><p class="eyebrow">BATTLE FIELD</p><h1>対戦の準備</h1></div><span class="phase-label">コマンド画面プレビュー</span></div>
+ <div class="battle-controls"><div class="battle-controls-row"><label>戦闘モード <select id="battle-mode"><option value="normal">通常モード</option><option value="rapid">連射コンモード</option><option value="turbo">爆速連射コンモード</option></select></label><div class="playback-settings"><label id="progression-label">進行形式 <select id="progression-style"><option value="turn">ターンごと</option><option value="game">実ゲーム風</option></select></label><label id="motion-label" hidden>モーション <select id="motion-style"><option value="on" selected>あり</option><option value="off">なし</option></select></label><label id="log-interval-label" hidden>ログ表示間隔 <select id="log-interval"><option value="0.5">0.5秒</option><option value="1">1秒</option><option value="1.5">1.5秒</option><option value="2" selected>2秒</option><option value="2.5">2.5秒</option><option value="3">3秒</option><option value="3.5">3.5秒</option><option value="4">4秒</option><option value="4.5">4.5秒</option><option value="5">5秒</option><option value="5.5">5.5秒</option><option value="6">6秒</option><option value="6.5">6.5秒</option><option value="7">7秒</option><option value="7.5">7.5秒</option><option value="8">8秒</option><option value="8.5">8.5秒</option><option value="9">9秒</option><option value="9.5">9.5秒</option><option value="10">10秒</option></select></label></div><label>上限ターン数 <input id="round-limit" aria-label="上限ターン数（1～1000、初期値10）" type="number" min="1" max="1000" value="10" placeholder="10"></label><label id="match-count-label" hidden>試合数 <input id="match-count" type="number" min="1" max="10000" value="1"></label><button id="start-round" hidden>連続試合開始</button><button id="reset-battle">最初から</button><button id="rewind-round" hidden>←1ターン戻る</button><button id="forward-round" hidden>1ターン進める→</button><button id="pause-round" hidden>一時停止</button><button id="finish-playback" hidden>一気に進める</button></div><fieldset id="battle-audio-settings" hidden><legend>音声</legend><label>BGM <input id="audio-bgm" type="range" min="0" max="100" step="1"><output id="audio-bgm-value"></output></label><label>効果音 <input id="audio-se" type="range" min="0" max="100" step="1"><output id="audio-se-value"></output></label><label><input id="audio-muted" type="checkbox"> ミュート</label><span id="audio-status" role="status"></span></fieldset><div id="match-summary" role="status"></div><div id="match-results"></div><p id="damage-summary"></p><p id="command-summary" role="status"></p><div id="normal-actions" class="normal-actions"></div></div>
+ <p id="battle-error" role="status" hidden></p>
+ <section class="arena" aria-label="対戦パーティ">
+  <div id="remaining-rounds" class="remaining-rounds" aria-live="polite">残り10ターン</div>
+  <header class="team-heading"><span>OPPONENT</span><h2 id="enemy-name">敵パーティ</h2></header>
+  <div id="enemy-roster" class="battle-roster enemy-roster"></div>
+  <div id="enemy-command-dock"></div>
+  <div id="battle-3d-stage" class="battle-3d-stage" hidden></div>
+  <div class="arena-center"><div id="arena-message" role="status" aria-live="polite">VS</div></div>
+  <header class="team-heading ally-heading"><span>YOUR PARTY</span><h2 id="ally-name">味方パーティ</h2></header>
+  <div class="command-dock">
+   <div id="party-commands" class="party-commands" aria-label="パーティ全体への指示">
+    <button id="party-auto" title="現在対応しているアンテナと打撃から自動選択">がんばれ</button><button id="party-attack">そうこうげき</button><button id="party-guard">まもり</button><button id="retire-battle">リタイア</button>
+   </div>
+   <div id="ally-command-dock"></div>
+   <section id="individual-commands" class="individual-commands" aria-labelledby="selected-name" hidden>
+    <header><div><small id="individual-view-label">個別コマンド</small><h3 id="selected-name"></h3></div><div class="individual-navigation"><button id="command-info">←情報</button><button id="command-status" aria-controls="individual-status" aria-expanded="false">状態</button><button id="command-back">戻る</button></div></header>
+    <div id="individual-action-buttons" class="individual-buttons"><button id="individual-attack">こうげき</button><button id="antenna-command" disabled title="アンテナ実行は未対応です"></button><button id="individual-guard">ぼうぎょ</button><button id="individual-cancel">とりけし</button></div>
+    <div id="individual-status" aria-label="現在の状態と残り有効ターン" hidden></div>
+   </section>
+   <div id="ally-roster" class="battle-roster ally-roster"></div>
+  </div>
+ </section>
+ <section aria-label="戦闘ログ"><h2 id="log-title">戦闘ログ</h2><ol id="battle-log"></ol></section>
+</main>
+<script src="data/party-data.js"></script><script src="party-engine.js"></script><script src="data/face-data.js"></script><script src="party-model.js"></script><script src="battle/battle-runtime.js"></script><script src="battle-info.js"></script><script src="turbo-matches.js"></script><script src="data/appearance-data.js"></script><script src="party-appearance.js"></script><script src="data/battle-visuals.js"></script><script src="data/battle-message-glyphs.js"></script><script src="battle-message-font.js"></script><script src="battle-native-messages.js"></script><script src="battle-3d-pose-blend.js"></script><script src="battle-3d-motion.js"></script><script src="battle-3d-director.js"></script><script src="data/battle-audio.js"></script><script src="battle-audio.js"></script><script src="battle-3d.js"></script><script src="battle-scrolling-log.js"></script><script src="battle-gauges.js"></script><script src="data/battle-hud-icons.js"></script><script src="battle-3d-hud.js"></script><script src="battle-screen.js"></script>
+</body></html>

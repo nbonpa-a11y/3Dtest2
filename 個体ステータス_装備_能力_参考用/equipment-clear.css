@@ -1,0 +1,26 @@
+.equipment-row {
+  grid-template-columns: 54px minmax(0, 1fr) 38px;
+}
+
+.equipment-picker-button {
+  grid-template-columns: 48px minmax(0, 1fr);
+  min-width: 0;
+}
+
+.equipment-clear-button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-color: #6c3c4b;
+  background: #351b29;
+  color: #ff9baa;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.equipment-clear-button:hover {
+  border-color: #ff7586;
+  background: #552235;
+}

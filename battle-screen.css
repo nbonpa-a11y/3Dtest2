@@ -1,0 +1,97 @@
+.battle-page{background:#eef3f1}.battle-main{max-width:1440px;margin:auto;padding-bottom:30px}.battle-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.battle-heading h1{font-size:28px;margin:0}.phase-label{font-size:12px;border:1px solid #b2cfc4;background:#e1eee8;color:#296657;border-radius:30px;padding:9px 15px}.battle-note{color:#617870;font-size:12px;line-height:1.8;margin:18px 0}.arena{padding:28px;background:radial-gradient(ellipse at 50% 45%,#38625b,#152f30 85%);border:1px solid #295049;border-radius:18px;box-shadow:0 16px 40px #153b301a;color:#edf6f1}.team-heading{display:flex;align-items:center;gap:14px;margin-bottom:15px}.team-heading span{font-size:10px;letter-spacing:2px;color:#e3ad9c}.team-heading h2{font-size:16px;overflow-wrap:anywhere;margin:0}.ally-heading span{color:#86d1b4}.battle-roster{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:9px}.combatant{position:relative;min-width:0;display:flex;flex-direction:column;text-align:left;gap:4px;border:1px solid #65837a;background:#183c37;color:#f7faf5;border-radius:10px;padding:12px 10px;box-shadow:0 4px 0 #0c2524}.enemy-roster .combatant{background:#3d3e3b;border-color:#81756d}.position-label{position:absolute;top:9px;right:9px;color:#91aca3;font-size:10px}.combatant-level{font-size:10px;color:#c3d7cc}.combatant-token{display:grid;place-items:center;align-self:center;width:42px;height:42px;margin:8px 0;border-radius:50%;background:#afd6ba;color:#21473a;font-size:21px;font-weight:700;border:3px solid #e5f2d7}.enemy-roster .combatant-token{background:#e7b9a7;color:#5a3930;border-color:#f7d8c3}.combatant-name{font-size:12px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;margin-bottom:6px}.resource-row{display:flex;justify-content:space-between;gap:4px;align-items:center;font-size:11px}.resource-label{font-size:9px;color:#b9d6c4}.resource-bar{display:block;height:4px;border-radius:3px;background:#78cb81;margin-bottom:3px}.resource-bar.ap{background:#60bddb}.resource-bar.zero{background:#526c62}.vacant{justify-content:center;align-items:center;min-height:194px;background:#142e2b55;border-style:dashed;box-shadow:none;color:#8eaaa0}.vacant-label{font-size:11px}.arena-center{display:flex;align-items:center;justify-content:center;gap:22px;padding:42px 10px;color:#85aca0}.arena-center span{height:1px;width:120px;background:#648c784f}.arena-center b{font-size:22px;font-weight:400;letter-spacing:4px}.command-dock{padding:16px;background:#0b252a88;border:1px solid #587c71;border-radius:13px}.party-commands{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}.party-commands button,.individual-buttons button{background:#3dc1d9;border:2px solid #bceef2;color:#123e4c;box-shadow:inset 0 0 0 2px #77dcea;font-weight:bold;border-radius:9px;min-height:43px;padding:8px}.party-commands button:disabled,.individual-buttons button:disabled{opacity:1;cursor:not-allowed}.party-commands button:first-child{background:#ffe083;border-color:#fff1bc;box-shadow:inset 0 0 0 2px #f5c351;color:#684913}.combatant[aria-pressed=true]{outline:3px solid #ffe083;outline-offset:2px;background:#365b43}.individual-commands{background:#d5f0ef;color:#184c54;padding:15px;border-radius:11px;max-width:540px;margin:0 0 18px}.individual-commands header{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:13px}.individual-commands small{font-size:10px}.individual-commands h3{margin:4px 0 0;font-size:16px;overflow-wrap:anywhere}.individual-buttons{display:grid;grid-template-columns:1fr 1fr;gap:9px}.individual-buttons button{overflow-wrap:anywhere}.battle-page [hidden]{display:none!important}#battle-error{padding:15px;background:#ffe9df;color:#963a29;border-radius:8px}@media(max-width:1000px){.battle-roster{grid-template-columns:repeat(4,minmax(0,1fr))}.arena{padding:20px}.arena-center{padding:25px}}@media(max-width:600px){.battle-main{padding:22px 12px}.battle-heading{align-items:flex-start;flex-direction:column}.battle-heading h1{font-size:24px}.arena{padding:14px 10px}.command-dock{padding:10px 7px}.party-commands{gap:7px;grid-template-columns:repeat(2,1fr)}.combatant{padding:10px 5px}.combatant-token{width:34px;height:34px;font-size:17px}.battle-roster{gap:7px}.combatant-name{font-size:10px}.resource-row{font-size:10px}.team-heading{gap:8px}.team-heading h2{font-size:13px}.team-heading span{font-size:8px;letter-spacing:1px}.topbar nav{gap:10px;font-size:11px}.vacant{min-height:181px}}
+.battle-controls{padding:16px;background:white;border:1px solid #b2cfc4;border-radius:12px;margin:18px 0;display:flex;flex-wrap:wrap;gap:12px;align-items:center}.battle-controls p{flex-basis:100%;margin:0}.battle-controls button{padding:10px 18px;border-radius:8px;border:1px solid #296657;background:#e1eee8;color:#184c54}.combatant.fallen{opacity:.5}.order-label{font-size:10px;white-space:normal;overflow-wrap:anywhere}.party-commands button[aria-pressed=true]{outline:3px solid #ffe083}.party-commands button:disabled,.individual-buttons button:disabled{opacity:.45}#battle-log{max-height:360px;overflow:auto;background:white;border-radius:12px;padding:18px;font-size:13px;line-height:1.8;list-style:none}#battle-log .round-heading{font-weight:800;color:#184c54}#battle-log .round-gap{height:1em}button:focus-visible{outline:3px solid #ffcb54;outline-offset:3px}
+.enemy-roster .combatant:disabled:not(.fallen){opacity:1;color:#f7faf5}.enemy-roster .combatant:enabled{outline:2px solid #ffe083;cursor:pointer}.battle-controls label{display:flex;gap:8px;align-items:center}.battle-controls label input{width:auto;margin:0}
+.individual-navigation{display:flex;gap:8px;flex-shrink:0}.individual-navigation button{padding:8px 12px;border:1px solid #296657;border-radius:7px;background:#fff;color:#184c54}.status-row{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid #b2cfc4}.status-duration{font-size:12px;text-align:right}.individual-commands header>div:first-child{min-width:0}
+
+#match-results{white-space:pre-line;max-height:240px;overflow:auto}.battle-controls input[type=number]{width:100px}.enemy-roster .combatant:enabled{outline:none}
+
+.combatant-antenna{display:block;font-size:11px;overflow-wrap:anywhere;min-height:2.5em}.log-actor{border-radius:3px;padding:2px 4px}.log-actor.ally,#match-summary .ally{background:#dceeff;color:#184974}.log-actor.enemy,#match-summary .enemy{background:#ffe1e1;color:#922f37}#match-summary{display:flex;gap:12px;flex-wrap:wrap;width:100%;font-size:20px}#match-summary strong{padding:10px 16px;border-radius:8px}#match-results{display:flex;flex-wrap:wrap;gap:8px;width:100%;white-space:normal}.match-result{padding:8px 12px;border:1px solid #ccd5dc;border-radius:6px;font-size:13px}.match-result.ally{border-left:4px solid #4092c7}.match-result.enemy{border-left:4px solid #d96464}.match-log-heading{font-weight:bold;background:#ffe1e1;padding:10px;margin-top:24px}#enemy-command-dock .individual-commands{margin:12px 0}
+
+/* Keep setup and execution controls together; wrap only on narrow screens. */
+.battle-controls-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;width:100%}
+.battle-controls-row label{flex:0 0 auto;white-space:nowrap}
+.battle-controls-row select{width:auto;min-width:150px;flex-shrink:0}
+.battle-controls-row button{flex-shrink:0;white-space:nowrap}
+.battle-roster .combatant:disabled:not(.fallen){opacity:1;color:#f7faf5}
+.battle-roster .combatant.fallen{opacity:.5}
+/* Compact the arena without scaling text or controls. */
+.arena{padding:18px}.team-heading{margin-bottom:9px}
+.arena-center{padding:10px;gap:16px}.arena-center b{font-size:18px}
+.combatant{padding:8px 7px;gap:2px}.combatant-token{width:30px;height:30px;margin:2px 0;font-size:17px;border-width:2px}
+.combatant-name{margin-bottom:2px}.combatant-antenna{min-height:1.3em;line-height:1.25}
+.resource-bar{height:3px;margin-bottom:2px}.vacant{min-height:145px}
+.command-dock{padding:10px}.party-commands{gap:8px;margin-bottom:10px}
+.party-commands button{min-height:36px;padding:6px}
+@media(max-width:600px){.arena{padding:12px 8px}.command-dock{padding:8px 5px}.battle-controls-row{gap:10px}.battle-controls-row select{min-width:140px}.combatant{padding:7px 5px}.combatant-token{width:28px;height:28px}.combatant-antenna{font-size:10px}.vacant{min-height:140px}}
+
+.log-actor.ally{background:#f0f7fd}.log-actor.enemy{background:#fff2f2}
+.party-commands button:first-child{background:#3dc1d9;border-color:#bceef2;box-shadow:inset 0 0 0 2px #77dcea;color:#123e4c}
+.log-death{background:#ededed;color:#444;border-radius:3px;padding:1px 3px}
+.battle-roster .combatant.fallen{opacity:.25;filter:brightness(.65)}
+.battle-roster .combatant.stopped:not(.fallen){opacity:.62;filter:brightness(.86)}
+
+.combatant-status-icons{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:1px;align-items:center;width:100%;margin:3px 0}.combatant-status-icon{display:block;width:100%;max-width:16px;height:auto;aspect-ratio:1;object-fit:contain}
+.ally-heading span{color:#a8d9ff}
+.ally-roster .combatant{background:#253e52;border-color:#7399b7;box-shadow:0 4px 0 #152d40}
+.ally-roster .combatant-token{background:#bbdef6;color:#294c68;border-color:#e0f2ff}
+.ally-roster .combatant[aria-pressed=true]{background:#365b78;outline-color:#b9e2ff}
+.ally-roster .position-label{color:#afcee5}
+.ally-roster .combatant-level,.ally-roster .resource-label{color:#c2def2}
+
+#arena-message{font-size:16px;line-height:1.6;text-align:center;min-height:32px;color:#f4fafb;letter-spacing:normal}.combatant .card-result{display:block;position:absolute;top:calc(100% + 5px);left:-4px;right:-4px;z-index:4;padding:5px;background:#f8fcff;color:#203d48;border:1px solid #afccd5;border-radius:6px;font-size:11px;white-space:normal;overflow-wrap:anywhere;box-shadow:0 3px 9px #0003}.combatant.result-glow{box-shadow:0 0 15px 5px #fff6bba0;outline:2px solid #fff5b5}.battle-roster:has(.card-result){margin-bottom:70px}.combatant.result-glow.fallen{opacity:.7}
+.game-presentation .arena-center{position:relative;min-height:44px;padding:6px 10px}
+#arena-message .log-actor.ally{background:#bbdcf7;color:#183f65}
+#arena-message .log-actor.enemy{background:#f4bdc3;color:#79242f}
+.game-presentation .ally-roster .card-result{top:auto;bottom:calc(100% + 5px)}
+.game-presentation .battle-roster:has(.card-result){margin-top:0;margin-bottom:0}.game-presentation .enemy-roster{padding-bottom:74px}.game-presentation .ally-roster{padding-top:74px}.game-presentation .card-result{white-space:pre-line;line-height:18px}
+.game-presentation .combatant .card-result.no-effect{background:transparent;color:#fff;border-color:transparent;box-shadow:none}
+
+.party-commands button[aria-pressed=true]{background:#ffe083;border-color:#fff1bc;box-shadow:inset 0 0 0 2px #f5c351;color:#684913}.normal-actions{display:flex;flex-wrap:wrap;gap:10px;width:100%}.combatant.acting-glow{outline:2px solid #fff4a6;box-shadow:0 0 16px 5px #fff3a899}.game-presentation .battle-roster .combatant.fallen,.game-presentation .battle-roster .combatant.stopped{opacity:1;filter:none}.game-presentation .combatant.fallen{background:#101c22;border-color:#35414a}.game-presentation .combatant.fallen>:not(.card-result){opacity:.25;filter:brightness(.65)}.game-presentation .combatant.stopped:not(.fallen)>:not(.card-result){opacity:.62;filter:brightness(.86)}
+.individual-buttons button[aria-pressed=true]{background:#ffe083;border-color:#fff1bc;box-shadow:inset 0 0 0 2px #f5c351;color:#684913;outline:3px solid #ffe083}
+
+#battle-log>li{white-space:pre-wrap;overflow-wrap:anywhere}
+.arena{position:relative}.remaining-rounds{position:absolute;z-index:6;top:11px;right:13px;padding:7px 15px;border:2px solid #e8b80e;border-radius:5px;background:#fff47b;color:#18130b;font-size:16px;font-weight:900;line-height:1;letter-spacing:.03em;box-shadow:0 0 10px #ffc400b8,inset 0 0 0 1px #fff9b8}
+@media(max-width:600px){.remaining-rounds{top:7px;right:7px;padding:6px 9px;font-size:13px}}
+
+/* Preserve the action multiplier on its own line. */
+#arena-message{white-space:pre-line}
+
+/* Eight battle positions always stay in a single row, including mobile. */
+.battle-info-frame{position:fixed;inset:0;width:100%;height:100dvh;border:0;z-index:100;background:#f4f6f3}
+.individual-navigation{display:flex;flex-wrap:wrap;gap:5px}
+@media(max-width:1000px){.battle-roster{grid-template-columns:repeat(8,minmax(0,1fr));gap:4px}}
+@media(max-width:600px){
+ .battle-main{padding:16px 5px}.arena{padding:36px 4px 10px}.battle-roster{gap:2px}
+ .combatant{padding:19px 2px 4px;gap:2px;border-radius:5px;min-width:0}
+ .position-label{top:4px;right:3px;font-size:8px}.combatant-level{font-size:7px}
+ .combatant-token{width:21px;height:21px;font-size:11px;border-width:1px;margin:3px 0}
+ .combatant-name{font-size:clamp(7px,1.8vw,10px);white-space:normal;overflow-wrap:anywhere;margin-bottom:2px}
+ .combatant-antenna,.order-label{font-size:clamp(6px,1.65vw,9px);white-space:normal;overflow-wrap:anywhere;line-height:1.25}
+ .resource-row{font-size:clamp(7px,1.9vw,10px);gap:1px;flex-wrap:wrap}.resource-label{font-size:6px}.resource-number{font-size:inherit}
+ .vacant{min-height:115px}.vacant-label{font-size:7px}.resource-bar{height:3px}
+ #battle-log{font-size:clamp(8px,2.3vw,11px);line-height:1.5;padding-left:0}
+ #battle-log li,#battle-log span{font-size:inherit}
+ #arena-message{font-size:12px;letter-spacing:0;overflow-wrap:anywhere}
+ .game-presentation .card-result{font-size:clamp(7px,1.9vw,10px);line-height:1.4;padding:3px 1px;overflow-wrap:anywhere}
+ .individual-commands{padding:9px}.individual-commands header{gap:5px}.individual-navigation button{padding:6px;font-size:11px}
+}
+
+/* Compact mobile command and playback controls. */
+@media(max-width:600px){
+ .party-commands{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+ .party-commands button{min-width:0;min-height:32px;padding:5px 1px;font-size:clamp(8px,2.4vw,12px);white-space:nowrap}
+ .normal-actions{flex-wrap:nowrap;gap:3px}
+ .normal-actions button{flex:1 1 0;min-width:0;padding:7px 1px;font-size:clamp(7px,2.1vw,11px);white-space:nowrap;letter-spacing:-.03em;border-radius:6px}
+ .battle-controls-row{gap:6px;align-items:center}
+ .battle-controls-row label{gap:3px;min-width:0;font-size:10px}
+ .battle-controls-row select{min-width:0;max-width:100%;padding:5px 2px;font-size:10px}
+ #progression-label,#log-interval-label{display:flex;flex:0 1 auto;white-space:nowrap}
+ #progression-style{width:88px}#log-interval{width:57px}
+ .combatant-token,.combatant-level{display:none}
+ .combatant{padding-top:15px}.vacant{min-height:88px}
+}
+
+.playback-settings{display:flex;align-items:center;gap:12px;max-width:100%}
+@media(max-width:600px){.playback-settings{gap:6px;flex-wrap:nowrap;min-width:0}}
+
+#battle-audio-settings{display:flex;align-items:center;flex-wrap:wrap;gap:1rem;border:1px solid #bbd4cc;border-radius:8px;margin:8px 0;padding:8px 12px}#battle-audio-settings[hidden]{display:none}#battle-audio-settings label{display:flex;align-items:center;gap:.4rem}#battle-audio-settings input[type=range]{width:100px}#battle-audio-settings output{min-width:3em;font-variant-numeric:tabular-nums}#audio-status{font-size:.85em}

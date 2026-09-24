@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ja">
+<head><base href="個体ステータス_装備_能力_参考用/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>電波人間 個体登録ツール</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="motion-styles.css">
+  <link rel="stylesheet" href="registration-styles.css">
+  <link rel="stylesheet" href="header-styles.css">
+  <link rel="stylesheet" href="equipment-search.css">
+  <link rel="stylesheet" href="registered-editor.css">
+  <link rel="stylesheet" href="equipment-clear.css">
+  <link rel="stylesheet" href="resistance-styles.css">
+  <link rel="stylesheet" href="viewer-ui.css">
+  <link rel="stylesheet" href="mobile-picker.css">
+  <style>.picker-item[hidden]{display:none!important}</style>
+<style>body{margin:0}body>header,aside,.viewer-tools,.registered-character-nav,.mode-tabs{display:none!important}main,.viewer{display:block!important;margin:0!important;padding:0!important;width:512px!important;height:512px!important}#canvas{display:block;width:512px!important;height:512px!important}</style></head>
+<body>
+  <header><div class="header-main"><div class="brand"><h1>電波人間 個体登録ツール</h1></div><div class="editor-mode-controls"><span id="viewer-registration-actions" class="viewer-registration-actions"><button id="register-character" class="register-button" type="button">この個体を登録</button><button id="cancel-registration-edit" class="cancel-registration-edit" type="button" hidden>新規登録に戻る</button><button id="party-appearance-button" class="party-appearance-button" type="button">パーティ全体外見</button></span><nav class="mode-tabs desktop-mode-tabs" aria-label="編集モード"><button class="active" data-mode="appearance">個体外見</button><button data-mode="registration">装備・能力</button></nav></div><section class="header-registered" aria-label="登録済み個体"><label class="registered-party-filter">登録済みパーティ<select id="registered-party-filter"></select></label><h2>登録済み個体</h2><div id="registered-list"></div></section></div><div id="status" hidden></div></header>
+  <main>
+    <section class="viewer">
+      <nav id="registered-character-nav" class="registered-character-nav" aria-label="登録キャラクター切替" hidden>
+        <button id="registered-prev" type="button" title="前の登録キャラクター" aria-label="前の登録キャラクター">←</button>
+        <button id="registered-nav-label" class="registered-nav-label" type="button" title="選択後、キーボードの左右矢印でも切り替えられます"></button>
+        <button id="registered-next" type="button" title="次の登録キャラクター" aria-label="次の登録キャラクター">→</button>
+      </nav>
+      <canvas id="canvas"></canvas>
+      <div class="viewer-tools">
+        <button id="zoom-in" title="拡大" aria-label="拡大">＋</button><button id="zoom-out" title="縮小" aria-label="縮小">−</button>
+        <button id="front">正面</button><button id="rotate">自動回転</button>
+        <button id="background-step" title="背景の明るさを切替">背景 1/5</button>
+        <label class="light-control" title="キャラクターに当たる光の明るさ"><span>照明</span><input id="light-level" type="range" min="0" max="200" value="100" step="5"><output id="light-value">100%</output></label>
+      </div>
+    </section>
+    <nav class="mode-tabs mobile-mode-tabs" aria-label="編集モード"><button class="active" data-mode="appearance">個体外見</button><button data-mode="registration">装備・能力</button></nav>
+    <aside>
+      <div id="appearance-mode">
+      <div class="actions"><button id="random">ランダム</button></div>
+      <section class="motion-panel">
+        <h2>モーション</h2>
+        <select id="motion-select" aria-label="モーション選択"></select>
+        <div class="motion-actions"><button id="motion-play">一時停止</button><button id="motion-restart">最初から</button><label>速度 <select id="motion-speed"><option value="0.5">0.5倍</option><option value="1" selected>1倍</option><option value="1.5">1.5倍</option><option value="2">2倍</option></select></label></div>
+        <div class="expression-grid"><label>目の表情<select id="eye-emotion"></select></label><label>口の表情<select id="mouth-emotion"></select></label></div>
+      </section>
+      <div id="controls"></div>
+      </div>
+      <div id="registration-mode" hidden>
+        <section class="registration-card"><h2>個体情報</h2><label>登録名<input id="reg-name" maxlength="24" placeholder="例:ほしほしおお"></label><label>パーティ名<input id="reg-party" maxlength="24" autocomplete="off" placeholder="未入力の場合は所属パーティ無し"></label><label id="reg-party-select-label" hidden>登録済みパーティから選択<select id="reg-party-select"><option value="">選択してください</option></select></label><label>レベル<input id="reg-level" type="number" min="1" max="1001" value="1"></label><label>補正<select id="reg-ability-0"></select></label></section>
+        <section class="registration-card"><h2>装備</h2><p class="reg-note">現在の外見へ6部位の装備を設定します。</p><div id="equipment-controls"></div></section>
+        <section class="registration-card"><h2>ステータス</h2><div id="stat-output"></div></section>
+      </div>
+    </aside>
+  </main>
+  <section id="party-appearance-dialog" class="party-appearance-dialog" role="dialog" aria-modal="true" aria-labelledby="party-appearance-title" hidden>
+    <div class="party-appearance-card">
+      <header class="party-appearance-header"><div><h2 id="party-appearance-title">パーティ全体外見</h2><p>表示する登録済みパーティを選択してください。</p></div><button id="party-appearance-close" type="button" aria-label="閉じる">×</button></header>
+      <div class="party-appearance-options"><label class="party-appearance-select">パーティ<select id="party-appearance-select"></select></label><button id="party-background-step" type="button">背景 1/5</button></div>
+      <div id="party-appearance-members" class="party-appearance-members"></div>
+    </div>
+  </section>
+  <script src="vendor/three.min.js"></script>
+  <script src="vendor/OBJLoader.js"></script>
+  <script src="vendor/MTLLoader.js"></script>
+  <script src="vendor/OrbitControls.js"></script>
+  <script src="vendor/CopyShader.js"></script>
+  <script src="vendor/Pass.js"></script>
+  <script src="vendor/ShaderPass.js"></script>
+  <script src="vendor/EffectComposer.js"></script>
+  <script src="vendor/RenderPass.js"></script>
+  <script src="vendor/OutlinePass.js"></script>
+  <script>window.MTLLoader=THREE.MTLLoader;</script>
+  <script src="vendor/model-motion.js"></script>
+  <script src="data/assets-data.js"></script>
+  <script src="data/thumbnails-data.js"></script>
+  <script src="data/motions-data.js"></script>
+  <script src="data/registration-data.js"></script>
+  <script src="data/resistance-icons-data.js"></script>
+  <script src="data/equipment-search-data.js"></script>
+  <script src="data/equipment-assets-index.js"></script>
+  <script>window.DENPA_ASSETS?.catalog?.skinColors?.forEach((row,index)=>{row.name=String(index)});window.DENPA_ASSETS?.catalog?.hairColors?.forEach((row,index)=>{row.name=String(index)});</script>
+  <script src="../appearance-renderer.js"></script>
+  
+  
+  
+  
+</body>
+</html>

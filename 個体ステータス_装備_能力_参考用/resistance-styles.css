@@ -1,0 +1,76 @@
+.resistance-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.resistance-grid .resistance-cell {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 5px;
+  min-height: 44px;
+  padding: 5px;
+  text-align: left;
+  border: 1px solid #315073;
+}
+
+.resistance-cell i {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 28px;
+  min-height: 28px;
+  font-style: normal;
+}
+
+.resistance-cell i img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.resistance-cell i img:nth-child(2) {
+  margin-left: -13px;
+}
+
+.resistance-cell em {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 10px;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resistance-cell b {
+  font-size: 15px;
+}
+
+.resistance-cell.positive {
+  border-color: #287db9;
+  background: #102f50;
+}
+
+.resistance-cell.positive b {
+  color: #66c7ff;
+}
+
+.resistance-cell.negative {
+  border-color: #a14457;
+  background: #3b1c29;
+}
+
+.resistance-cell.negative b {
+  color: #ff7586;
+}
+
+.resistance-cell.zero {
+  opacity: .72;
+}
+
+@media (max-width: 520px) {
+  .resistance-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
