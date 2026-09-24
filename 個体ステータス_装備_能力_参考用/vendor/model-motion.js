@@ -209,7 +209,9 @@ async function readMotion(url) {
   return { ...header, arrays };
 }
 
-function loadMotion(url) {
+function loadMotion(url, cache = true) {
+  // Battle owns the decoded motion; avoid retaining its large base64 URL as a second cache key.
+  if (!cache) return readMotion(url);
   if (!motionCache.has(url)) motionCache.set(url, readMotion(url));
   return motionCache.get(url);
 }

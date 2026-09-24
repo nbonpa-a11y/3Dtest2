@@ -54,7 +54,7 @@ async function pump(){
  if(records.size>80)for(const [id,r]of records){if(records.size<=64)break;if(!ids.has(id)){records.delete(id);byKey.delete(JSON.stringify(r.spec));}}
  for(const id of ids){const r=records.get(id);if(r?.image||r?.error)display(r);}
  const next=[...ids].map(id=>records.get(id)).find(r=>r&&!r.image&&!r.error);
- if(!next){clearTimeout(idleTimer);if(frame)idleTimer=setTimeout(()=>{frame?.remove();frame=null;ready=null;},30000);return;}
+ if(!next){clearTimeout(idleTimer);if(frame)idleTimer=setTimeout(()=>{frame?.remove();frame=null;ready=null;},document.getElementById?.('battle-3d-stage')?0:30000);return;}
  active=next;
  try{
   await renderer();

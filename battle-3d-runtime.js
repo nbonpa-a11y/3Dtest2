@@ -23,7 +23,7 @@
  };
  const names=['待機','ふらふら','倒れる','もがく','待機（反転）','走る','走る（反転）','技1','技2','防御','回避','ダメージ','ダウン','起き上がる','喜ぶ','悲しむ','楽しむ'];
  // Motion scripts publish one shared slot, so load them sequentially exactly once.
- for(const name of new Set([...names,...Object.values(globalThis.RankBattleVisualData?.conditions||{}).map(d=>d.motion).filter(Boolean)])){const row=DENPA_MOTIONS.animations.find(x=>x.labelJa===name);if(!row)throw Error('モーションがありません: '+name);await loadScript(row.script);motions.set(name,await loadMotion(DENPA_MOTION_DATA));}
+ for(const name of new Set([...names,...Object.values(globalThis.RankBattleVisualData?.conditions||{}).map(d=>d.motion).filter(Boolean)])){const row=DENPA_MOTIONS.animations.find(x=>x.labelJa===name);if(!row)throw Error('モーションがありません: '+name);await loadScript(row.script);motions.set(name,await loadMotion(DENPA_MOTION_DATA,false));globalThis.DENPA_MOTION_DATA=null;}
  let fx=null;try{fx=await globalThis.createBattleEffects?.(renderer,loadScript)}catch(error){console.warn('Battle effects unavailable:',error);parent.postMessage({type:'rank-battle-3d-warning',message:'エフェクトを準備できなかったため、モーションのみ再生します。'},'*');}
  const shadows=globalThis.RankBattleShadows?.create(THREE,scene);
  const arena=globalThis.RankBattleArena?.create(THREE);if(arena)scene.add(arena.group);
