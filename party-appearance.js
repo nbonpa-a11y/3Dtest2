@@ -18,7 +18,7 @@ function character(c,extra='',view='full'){
  schedule();
  return `<span class="appearance-frame ${extra}"><img data-appearance-id="${record.id}" data-appearance-view="${view}" alt="${escape(c.name)}の外見" ${record.image?`src="${view==='head'?(record.portrait||record.image):view==='party'?(record.partyImage||record.image):record.image}"`:'hidden'} decoding="async"><span class="appearance-note" ${record.image?'hidden':''}>${record.error?'画像を生成できませんでした':'画像生成中…'}</span></span>`;
 }
-function schedule(){clearTimeout(scheduled);scheduled=setTimeout(pump,120);}
+function schedule(delay=120){clearTimeout(scheduled);scheduled=setTimeout(pump,delay);}
 function renderer(){
  clearTimeout(idleTimer);
  if(ready)return ready;
@@ -39,11 +39,11 @@ window.addEventListener('message',event=>{
  if(message.error)active.error=message.error;
  else if(typeof message.image==='string'&&message.image.startsWith('data:image/png;base64,'))Object.assign(active,{image:message.image,portrait:message.portrait,partyImage:message.partyImage,partyAspect:message.partyAspect});
  else active.error='外見画像の形式が不正です';
- display(active);active=null;schedule();
+ display(active);active=null;schedule(0);
 });
 function display(record){
  for(const img of document.querySelectorAll(`[data-appearance-id="${record.id}"]`)){
-  if(record.image){const view=img.dataset.appearanceView;img.src=view==='head'?(record.portrait||record.image):view==='party'?(record.partyImage||record.image):record.image;if(view==='party'&&record.partyAspect){img.parentElement.style.aspectRatio=record.partyAspect;img.parentElement.parentElement.style.flex=String(record.partyAspect)+' 1 0';img.parentElement.parentElement.style.setProperty('--party-aspect',String(record.partyAspect));}img.hidden=false;img.nextElementSibling.hidden=true;}
+  if(record.image){const view=img.dataset.appearanceView;const src=view==='head'?(record.portrait||record.image):view==='party'?(record.partyImage||record.image):record.image;if(img.getAttribute?.('src')!==src)img.src=src;if(view==='party'&&record.partyAspect){img.parentElement.style.aspectRatio=record.partyAspect;img.parentElement.parentElement.style.flex=String(record.partyAspect)+' 1 0';img.parentElement.parentElement.style.setProperty('--party-aspect',String(record.partyAspect));}img.hidden=false;img.nextElementSibling.hidden=true;}
   else if(record.error){img.nextElementSibling.textContent='外見画像を生成できませんでした';img.nextElementSibling.title=record.error;}
  }
 }
