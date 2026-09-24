@@ -1,10 +1,7 @@
 (async()=>{'use strict';
  const canvas=document.getElementById('canvas'),status=document.getElementById('status');
- let freezeActors=false,effectMode=globalThis.RankBattleEffectSettings?.read()||'normal';
  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;renderer.setClearColor(0x000000,0);
- const diagnostics=globalThis.createBattleDiagnostics?.(renderer,canvas);
- const gpuTimer=globalThis.createBattleGpuTimer?.(renderer.getContext?.());
  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(33.4,1.778125,100,10000);
  camera.position.set(0,100,1800);camera.lookAt(0,100,0);
  scene.add(new THREE.HemisphereLight(0xffffff,0x33405b,2.2));const light=new THREE.DirectionalLight(0xffffff,2.8);light.position.set(3,5,4);scene.add(light);
@@ -28,7 +25,6 @@
  // Motion scripts publish one shared slot, so load them sequentially exactly once.
  for(const name of new Set([...names,...Object.values(globalThis.RankBattleVisualData?.conditions||{}).map(d=>d.motion).filter(Boolean)])){const row=DENPA_MOTIONS.animations.find(x=>x.labelJa===name);if(!row)throw Error('モーションがありません: '+name);await loadScript(row.script);motions.set(name,await loadMotion(DENPA_MOTION_DATA,false));globalThis.DENPA_MOTION_DATA=null;}
  let fx=null;try{fx=await globalThis.createBattleEffects?.(renderer,loadScript)}catch(error){console.warn('Battle effects unavailable:',error);parent.postMessage({type:'rank-battle-3d-warning',message:'エフェクトを準備できなかったため、モーションのみ再生します。'},'*');}
- fx?.setMode?.(globalThis.RankBattleEffectSettings?.read()||'normal');
  const shadows=globalThis.RankBattleShadows?.create(THREE,scene);
  const arena=globalThis.RankBattleArena?.create(THREE);if(arena)scene.add(arena.group);
  let lastOutcomeY=null;
@@ -47,7 +43,7 @@
   if(data.footText!==undefined)entry.foot.textContent=data.footText;
  }
  function animateNumbers(entry,dt){RankBattleNumbers.animate?.(entry.label,dt);for(const piece of entry.label.children)RankBattleNumbers.animate?.(piece,dt);}
- function pose(entry,dt){animateNumbers(entry,dt);const sample=entry.track.sample(dt,motions);if(!freezeActors){entry.model.setMotion(sample.name);entry.model.update(sample.seconds,dt);}
+ function pose(entry,dt){animateNumbers(entry,dt);const sample=entry.track.sample(dt,motions);entry.model.setMotion(sample.name);entry.model.update(sample.seconds,dt);
   // Native UpdateMoveToBack resets position/facing and resumes wait on arrival.
   const currentStep=entry.track.steps.filter(s=>s.at<=entry.track.time).at(-1);
   if(currentStep?.travel==='return'&&entry.track.time>=currentStep.at+currentStep.duration){entry.returning=false;entry.staged=false;entry.strikePosition=null;}
@@ -159,8 +155,6 @@
  });
  window.addEventListener('message',event=>{
   if(event.source!==parent)return;const d=event.data;if(!d||typeof d.type!=='string')return;
-  if(d.type==='rank-battle-3d-freeze-actors'){freezeActors=d.value===true;return;}
-  if(d.type==='rank-battle-3d-effect-mode'){effectMode=d.value;fx?.setMode?.(d.value);return;}
   if(d.type==='rank-battle-3d-sync'){
    paused=!!d.paused;visible=!!d.visible;busy=!!d.busy;
    const next=d.actors||[],changed=JSON.stringify(next.map(a=>[a.key,a.spec]))!==JSON.stringify(desired.map(a=>[a.key,a.spec]));desired=next;if(changed)revision++;
@@ -201,12 +195,12 @@
   const dt=last?Math.min(.1,Math.max(0,(now-last)/1000)):0;last=now;if(!visible||document.hidden)return;
   const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;
   if(w!==width||h!==height){width=w;height=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();camera.updateMatrixWorld()}
-  diagnostics?.begin(now);
-  if(!paused){cameraTime+=dt;for(const e of actors.values())if(e.model.root.visible)pose(e,dt);diagnostics?.mark('characters');updateCamera();fx?.update(dt);diagnostics?.mark('effects');if(phase){phase.elapsed+=dt;updateField();updateTimeline();if(phase.elapsed>=phase.duration)complete();}}
+  
+  if(!paused){cameraTime+=dt;for(const e of actors.values())if(e.model.root.visible)pose(e,dt);updateCamera();fx?.update(dt);if(phase){phase.elapsed+=dt;updateField();updateTimeline();if(phase.elapsed>=phase.duration)complete();}}
   updateCamera();
   for(const e of actors.values())if(e.model.root.visible){globalThis.RankBattleCamera?.faceParty(e.model.root,camera,cameraView?.mode==='team'?cameraView:view);e.model.root.updateWorldMatrix(true,false);labelPosition(e);}
   if(view.outcome){const feet=[...actors.values()].filter(e=>e.model.root.visible).map(e=>(1-new THREE.Vector3(e.model.root.position.x,e.model.root.position.y-5,e.model.root.position.z).project(camera).y)/2);const y=Math.max(...feet)+.025;if(Number.isFinite(y)&&y!==lastOutcomeY){lastOutcomeY=y;parent.postMessage({type:'rank-battle-3d-outcome-anchor',y},'*');}}else lastOutcomeY=null;
-  shadows?.update(actors);diagnostics?.mark('overlays');gpuTimer?.begin();renderer.render(scene,camera);diagnostics?.mark('renderSubmit');fx?.draw(camera);diagnostics?.mark('effectDraw');gpuTimer?.end();diagnostics?.end(now,{gpu:gpuTimer?.read(),visibleActors:[...actors.values()].filter(e=>e.model.root.visible).length,effectMode,frozen:freezeActors,...fx?.diagnostics?.()});
+  shadows?.update(actors);renderer.render(scene,camera);fx?.draw(camera);
  }catch(error){renderer.setAnimationLoop(null);parent.postMessage({type:"rank-battle-3d-error",message:String(error.message||error)},"*");}});
  window.addEventListener('pagehide',()=>{disposed=true;shadows?.dispose();fx?.dispose();arena?.dispose();renderer.setAnimationLoop(null);for(const e of actors.values())e.model.dispose();for(const t of textures.values())t.dispose();renderer.dispose()});
  status.textContent='';parent.postMessage({type:'rank-battle-3d-ready'},'*');
