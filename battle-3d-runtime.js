@@ -4,6 +4,7 @@
  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;renderer.setClearColor(0x000000,0);
  const diagnostics=globalThis.createBattleDiagnostics?.(renderer,canvas);
+ const gpuTimer=globalThis.createBattleGpuTimer?.(renderer.getContext?.());
  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(33.4,1.778125,100,10000);
  camera.position.set(0,100,1800);camera.lookAt(0,100,0);
  scene.add(new THREE.HemisphereLight(0xffffff,0x33405b,2.2));const light=new THREE.DirectionalLight(0xffffff,2.8);light.position.set(3,5,4);scene.add(light);
@@ -134,6 +135,13 @@
   }
   if(version===revision)break;
  }while(!disposed);
+ // Upload decoded textures before announcing readiness, including hidden teammates.
+ // Otherwise first-use uploads stall individual battle scenes on mobile drivers.
+ await shared.imagesReady();
+ if(renderer.initTexture){const seen=new Set();for(const entry of actors.values()){
+  entry.model.root.traverse(node=>{for(const material of (Array.isArray(node.material)?node.material:[node.material]))if(material)for(const value of Object.values(material))if(value?.isTexture&&!seen.has(value)){seen.add(value);renderer.initTexture(value);}});
+  await new Promise(resolve=>setTimeout(resolve,0));
+ }}
  await fx?.prepare(desired);status.textContent='';parent.postMessage({type:'rank-battle-3d-prepared'},'*');
  }catch(e){status.textContent='3D表示を準備できませんでした';parent.postMessage({type:'rank-battle-3d-error',message:String(e.message||e)},'*')}
  finally{building=false}
@@ -196,7 +204,7 @@
   updateCamera();
   for(const e of actors.values())if(e.model.root.visible){globalThis.RankBattleCamera?.faceParty(e.model.root,camera,cameraView?.mode==='team'?cameraView:view);e.model.root.updateWorldMatrix(true,false);labelPosition(e);}
   if(view.outcome){const feet=[...actors.values()].filter(e=>e.model.root.visible).map(e=>(1-new THREE.Vector3(e.model.root.position.x,e.model.root.position.y-5,e.model.root.position.z).project(camera).y)/2);const y=Math.max(...feet)+.025;if(Number.isFinite(y)&&y!==lastOutcomeY){lastOutcomeY=y;parent.postMessage({type:'rank-battle-3d-outcome-anchor',y},'*');}}else lastOutcomeY=null;
-  shadows?.update(actors);diagnostics?.mark('overlays');renderer.render(scene,camera);diagnostics?.mark('renderSubmit');fx?.draw(camera);diagnostics?.mark('effectDraw');diagnostics?.end(now,{visibleActors:[...actors.values()].filter(e=>e.model.root.visible).length,effectMode,frozen:freezeActors,...fx?.diagnostics?.()});
+  shadows?.update(actors);diagnostics?.mark('overlays');gpuTimer?.begin();renderer.render(scene,camera);diagnostics?.mark('renderSubmit');fx?.draw(camera);diagnostics?.mark('effectDraw');gpuTimer?.end();diagnostics?.end(now,{gpu:gpuTimer?.read(),visibleActors:[...actors.values()].filter(e=>e.model.root.visible).length,effectMode,frozen:freezeActors,...fx?.diagnostics?.()});
  }catch(error){renderer.setAnimationLoop(null);parent.postMessage({type:"rank-battle-3d-error",message:String(error.message||error)},"*");}});
  window.addEventListener('pagehide',()=>{disposed=true;shadows?.dispose();fx?.dispose();arena?.dispose();renderer.setAnimationLoop(null);for(const e of actors.values())e.model.dispose();for(const t of textures.values())t.dispose();renderer.dispose()});
  status.textContent='';parent.postMessage({type:'rank-battle-3d-ready'},'*');
