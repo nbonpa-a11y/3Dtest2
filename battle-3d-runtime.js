@@ -1,5 +1,6 @@
 (async()=>{'use strict';
  const canvas=document.getElementById('canvas'),status=document.getElementById('status');
+ let freezeActors=false;
  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;renderer.setClearColor(0x000000,0);
  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(33.4,1.778125,100,10000);
@@ -44,7 +45,7 @@
   if(data.footText!==undefined)entry.foot.textContent=data.footText;
  }
  function animateNumbers(entry,dt){RankBattleNumbers.animate?.(entry.label,dt);for(const piece of entry.label.children)RankBattleNumbers.animate?.(piece,dt);}
- function pose(entry,dt){animateNumbers(entry,dt);const sample=entry.track.sample(dt,motions);entry.model.setMotion(sample.name);entry.model.update(sample.seconds,dt);
+ function pose(entry,dt){animateNumbers(entry,dt);const sample=entry.track.sample(dt,motions);if(!freezeActors){entry.model.setMotion(sample.name);entry.model.update(sample.seconds,dt);}
   // Native UpdateMoveToBack resets position/facing and resumes wait on arrival.
   const currentStep=entry.track.steps.filter(s=>s.at<=entry.track.time).at(-1);
   if(currentStep?.travel==='return'&&entry.track.time>=currentStep.at+currentStep.duration){entry.returning=false;entry.staged=false;entry.strikePosition=null;}
@@ -147,6 +148,7 @@
  });
  window.addEventListener('message',event=>{
   if(event.source!==parent)return;const d=event.data;if(!d||typeof d.type!=='string')return;
+  if(d.type==='rank-battle-3d-freeze-actors'){freezeActors=d.value===true;return;}
   if(d.type==='rank-battle-3d-effect-mode'){fx?.setMode?.(d.value);return;}
   if(d.type==='rank-battle-3d-sync'){
    paused=!!d.paused;visible=!!d.visible;busy=!!d.busy;
