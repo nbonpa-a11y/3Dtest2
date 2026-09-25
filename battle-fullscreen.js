@@ -14,7 +14,7 @@
   arena.style.maxHeight=availableH+'px';
  }
  function setActive(value){
-  active=value;host.dataset.active=String(value);button.textContent=value?'全画面を終了':'全画面';button.setAttribute('aria-pressed',String(value));
+  active=value;host.dataset.active=String(value);button.setAttribute('aria-label',value?'全画面を終了':'全画面');button.setAttribute('aria-pressed',String(value));
   if(value){savedOverflow=document.body.style.overflow;document.body.style.overflow='hidden';layout();}
   else{rotated=false;document.body.style.overflow=savedOverflow;arena.style.width='';arena.style.maxHeight='';try{screen.orientation?.unlock?.();}catch{}}
   requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
@@ -24,7 +24,8 @@
   try{
    if(active){if(nativeElement()===host){await(document.exitFullscreen?.()??document.webkitExitFullscreen?.());}if(active)setActive(false);return;}
    setActive(true);
-   try{const request=host.requestFullscreen||host.webkitRequestFullscreen;if(request)await request.call(host);}catch{/* In-page fullscreen also works on browsers without the API. */}
+   // Mobile uses in-page expansion: native fullscreen's browser-owned exit notice cannot be hidden.
+   try{const request=host.requestFullscreen||host.webkitRequestFullscreen;if(!matchMedia('(pointer:coarse)').matches&&request)await request.call(host);}catch{/* In-page fullscreen also works on browsers without the API. */}
    if(matchMedia('(pointer:coarse)').matches&&nativeElement()===host){try{await screen.orientation?.lock?.('landscape');}catch{/* Rotate only the arena if orientation lock is unsupported. */}}
    layout();
   }finally{pending=false;}
