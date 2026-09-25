@@ -1,6 +1,36 @@
 (()=>{'use strict';
 const data=globalThis.RANK_APPEARANCE_DATA,records=new Map(),byKey=new Map();
 let frame,ready,active=null,timer,scheduled,idleTimer,sequence=0;
+// Only generated pictures are stored here; party records remain independent.
+// Bump this revision whenever the appearance renderer or its materials change.
+const imageRevision='appearance-daccdde8c0aaa19b4851';
+let imageDb;
+function openImageDb(){
+ if(imageDb)return imageDb;
+ imageDb=new Promise(resolve=>{if(!globalThis.indexedDB){resolve(null);return;}let done=false;
+  const finish=db=>{if(done){db?.close();return;}done=true;clearTimeout(timeout);resolve(db);};
+  const timeout=setTimeout(()=>finish(null),1200);
+  try{const request=indexedDB.open('rankbattle-generated-images',1);
+   request.onupgradeneeded=()=>{const store=request.result.createObjectStore('images',{keyPath:'key'});store.createIndex('saved','saved');};
+   request.onsuccess=()=>{const db=request.result;db.onversionchange=()=>db.close();finish(db);};request.onerror=request.onblocked=()=>finish(null);
+  }catch{finish(null);}
+ });return imageDb;
+}
+const diskKey=r=>imageRevision+':'+JSON.stringify(r.spec);
+async function restoreImages(list){const db=await openImageDb();if(!db)return;
+ await Promise.all(list.map(r=>new Promise(resolve=>{let done=false;const finish=()=>{if(done)return;done=true;clearTimeout(timeout);resolve();};const timeout=setTimeout(finish,1200);
+  try{const q=db.transaction('images','readonly').objectStore('images').get(diskKey(r));q.onsuccess=()=>{if(!done&&q.result?.pictures?.image?.startsWith('data:image/png;base64,'))Object.assign(r,q.result.pictures);finish();};q.onerror=finish;}catch{finish();}
+ })));
+}
+async function saveImage(r){const db=await openImageDb();if(!db)return;
+ const pictures={image:r.image,portrait:r.portrait,partyImage:r.partyImage,partyAspect:r.partyAspect};
+ // At most 64 entries of 512 KiB each; do not let thumbnails exhaust phone storage.
+ if(JSON.stringify(pictures).length>512*1024)return;
+ try{const tx=db.transaction('images','readwrite'),store=tx.objectStore('images');store.put({key:diskKey(r),pictures,saved:Date.now()});
+  const count=store.count();count.onsuccess=()=>{let excess=count.result-64;if(excess<=0)return;const q=store.index('saved').openKeyCursor();q.onsuccess=()=>{const cursor=q.result;if(cursor&&excess-->0){store.delete(cursor.primaryKey);cursor.continue();}};};tx.onerror=()=>{};
+ }catch{/* Storage is optional, including private browsing and file URLs. */}
+}
+let restoring=false;
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function antenna(id,level=50){const rows=data.antenna[id]||[];return [...rows].reverse().find(r=>r.level<=level)||rows[0];}
 function thumbnail(kind,id,level){return(kind==='antenna'?antenna(id,level):data[kind]?.[id])?.image||'';}
@@ -39,7 +69,7 @@ window.addEventListener('message',event=>{
  if(message.error)active.error=message.error;
  else if(typeof message.image==='string'&&message.image.startsWith('data:image/png;base64,'))Object.assign(active,{image:message.image,portrait:message.portrait,partyImage:message.partyImage,partyAspect:message.partyAspect});
  else active.error='外見画像の形式が不正です';
- display(active);active=null;schedule(0);
+ if(active.image)void saveImage(active);display(active);active=null;schedule(0);
 });
 function display(record){
  for(const img of document.querySelectorAll(`[data-appearance-id="${record.id}"]`)){
@@ -48,11 +78,13 @@ function display(record){
  }
 }
 async function pump(){
- if(active)return;
+ if(active||restoring)return;
  const ids=new Set([...document.querySelectorAll('[data-appearance-id]')].map(img=>img.dataset.appearanceId));
  // Bound the in-memory image cache; registrations/shared codes contain no images.
  if(records.size>80)for(const [id,r]of records){if(records.size<=64)break;if(!ids.has(id)){records.delete(id);byKey.delete(JSON.stringify(r.spec));}}
  for(const id of ids){const r=records.get(id);if(r?.image||r?.error)display(r);}
+ const unchecked=[...ids].map(id=>records.get(id)).filter(r=>r&&!r.image&&!r.cacheChecked);
+ if(unchecked.length){restoring=true;for(const r of unchecked)r.cacheChecked=true;try{await restoreImages(unchecked);}finally{restoring=false;schedule(0);}return;}
  const next=[...ids].map(id=>records.get(id)).find(r=>r&&!r.image&&!r.error);
  if(!next){clearTimeout(idleTimer);if(frame)idleTimer=setTimeout(()=>{frame?.remove();frame=null;ready=null;},document.getElementById?.('battle-3d-stage')?0:30000);return;}
  active=next;

@@ -37,7 +37,7 @@
   const value={url:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(markup),width:w/48,height:h/48};if(cache.size>=256)cache.delete(cache.keys().next().value);cache.set(key,value);return value;
  }
  function render(element,text,tone){
-  const value=String(text),a=element.numberAnimation={text:value,tone,elapsed:0,critical:element.className.includes('critical'),frame:-1};
+  element.style.opacity='1';element.numberAge=0;const value=String(text),a=element.numberAnimation={text:value,tone,elapsed:0,critical:element.className.includes('critical'),frame:-1};
   const image=svg(value,tone,0,a.critical);if(!image){element.textContent=text;return;}
   element.textContent=text;element.className+=' native-number';element.style.width=image.width+'em';element.style.height=image.height+'em';
   if(element.ownerDocument?.createElement){
@@ -46,11 +46,11 @@
    animate(element,0);
   }else element.style.backgroundImage='url("'+image.url+'")';
  }
- function animate(element,delta){const a=element.numberAnimation;if(!a)return;a.elapsed+=Math.max(0,delta||0);const frame=Math.min(30,Math.floor(a.elapsed*60));if(frame===a.frame)return;a.frame=frame;
+ function animate(element,delta){const a=element.numberAnimation;if(!a)return;a.elapsed+=Math.max(0,delta||0);element.numberAge=a.elapsed;if(a.elapsed>=31/60){element.style.opacity='0';element.numberAnimation=null;return;}const frame=Math.min(30,Math.floor(a.elapsed*60));if(frame===a.frame)return;a.frame=frame;
   if(a.digits){a.digits.forEach((digit,index)=>{const phase=glyphPhase(frame,index,a.text.length,a.critical,a.tone);digit.style.opacity=String(phase.opacity);digit.style.transform='translateY('+(phase.dy/48)+'em) scale('+phase.scale+')';});}
   else {const image=svg(a.text,a.tone,frame,a.critical);if(image)element.style.backgroundImage='url("'+image.url+'")';}
-  if(a.critical){const scale=frame<=10?.7+.5*frame/10:frame<=20?1.2-.2*(frame-10)/10:1;const opacity=Math.max(0,Math.min(1,(frame-2)/6));element.style.setProperty?.('--critical-scale',String(scale));element.style.setProperty?.('--critical-opacity',String(opacity));}if(frame>=30)element.numberAnimation=null;
+  if(a.critical){const scale=frame<=10?.7+.5*frame/10:frame<=20?1.2-.2*(frame-10)/10:1;const opacity=Math.max(0,Math.min(1,(frame-2)/6));element.style.setProperty?.('--critical-scale',String(scale));element.style.setProperty?.('--critical-opacity',String(opacity));}
  }
- function clear(element){element.numberAnimation=null;element.removeAttribute?.('data-digit-animation');element.querySelectorAll?.('.number-digit').forEach(n=>n.remove());element.style.backgroundImage='';element.style.width='';element.style.height='';}
+ function clear(element){element.numberAnimation=null;element.numberAge=0;element.style.opacity='1';element.removeAttribute?.('data-digit-animation');element.querySelectorAll?.('.number-digit').forEach(n=>n.remove());element.style.backgroundImage='';element.style.width='';element.style.height='';}
  root.RankBattleNumbers={svg,render,clear,animate,glyphPhase,prepare};if(typeof module!=='undefined')module.exports=root.RankBattleNumbers;
 })(globalThis);

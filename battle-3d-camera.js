@@ -2,7 +2,7 @@
 (function(root){'use strict';
  function name(view){const count=view.count||8,size=count<=2?'S':count<=4?'M':'L';
   if(view.mode==='attack'){const c=Math.max(view.targetCount>=6?3:view.targetCount>=3?2:1,view.battleSize||1);return 'cam_btl_'+(view.side===1?'enatk_'+(c>=3?'L':c===2?'M':'S'):'pcatk_'+(c>=4?'LL':c===3?'L':c===2?'M':'S')+'01')+'.gcam';}
-  if(view.mode==='actor')return view.stage==='attack'?'cam_btl_'+(view.side===1?'enatk_S':'pcatk_S01')+'.gcam':view.side===1?'cam_btl_enskill_S.gcam':'cam_btl_pcskill.gcam';
+  if(view.mode==='actor')return view.stage==='attack'&&!view.jackReverse?'cam_btl_'+(view.side===1?'enatk_S':'pcatk_S01')+'.gcam':view.side===1?'cam_btl_enskill_S.gcam':'cam_btl_pcskill.gcam';
   if(view.coverReaction)return view.side===0?'cam_btl_pclook_LL.gcam':'cam_btl_enlook_'+(view.battleSize>3?'LL':'L')+'.gcam';
   if(view.outcome)return 'cam_btl_result_LL.gcam';
   if(view.front&&!view.hpBars)return 'cam_btl_resultwait_LL.gcam';

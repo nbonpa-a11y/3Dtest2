@@ -138,6 +138,7 @@ await loadedImages();
 if(textureErrors.length)throw Error('外見の画像素材を読み込めませんでした');
 let rendering=false;
 async function cropAppearance(url,headOnly=false){
+ if(headOnly)return {image:url,aspect:1};
  const img=new Image();img.src=url;await img.decode();
  const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;
  const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);

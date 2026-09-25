@@ -18,11 +18,13 @@ function isActionStopped(actor){return !!actor&&actor.hp>0&&B.movementBlockers(a
 function select(slot,side=0){if(busy||ended())return;const actor=state.parties[side]?.members[slot];if(!actor)return;selected=slot;selectedSide=side;targeting=false;statusView=side===1||isActionStopped(actor)||actor.hp<=0;render();$('command-back').focus();}
 function appendStatusIcons(card,actor){
  const strip=el('span','combatant-status-icons');strip.setAttribute('aria-label','現在の状態');
- const groups=globalThis.RankBattleHud.icons(actor.conditions??[],4);
+ const groups=globalThis.RankBattleHud.icons(actor.conditions??[]);
+ const goodRows=Math.max(1,Math.ceil(groups[1].length/4)),badRows=Math.max(1,Math.ceil(groups[0].length/4));
+ strip.style.setProperty('--status-rows',String(goodRows+badRows));
  groups.forEach((icons,row)=>icons.forEach((icon,column)=>{
   const img=el('img','combatant-status-icon');img.src='images/status-icons/'+icon.index+'.webp?v=2';img.width=24;img.height=24;img.alt=img.title=icon.name;
   // Native slots 00..03: bad row y=48; 04..07: good row y=68.
-  img.style.gridRow=String(row===0?2:1);img.style.gridColumn=String(column+1);strip.append(img);
+  img.style.gridRow=String((row===0?goodRows:0)+Math.floor(column/4)+1);img.style.gridColumn=String(column%4+1);strip.append(img);
  }));
  if(strip.children.length)card.append(strip);
 }
@@ -36,7 +38,9 @@ function playbackLogSpace(root,side,active){
 }
 function renderRoster(side){
  const root=$(side?'enemy-roster':'ally-roster');root.replaceChildren();
+ root.style.setProperty('--roster-count',Math.max(1,state.parties[side].members.filter(Boolean).length));
  state.parties[side].members.forEach((raw,slot)=>{
+ if(!raw)return;
  const a=raw&&motionCardState?.has(side+':'+slot)?{...raw,...motionCardState.get(side+':'+slot)}:raw;
   const stopped=isActionStopped(a),card=el(a?'button':'div','combatant'+(!a?' vacant':'')+(a&&a.hp<=0?' fallen':'')+(stopped?' stopped':''));
   if(activeActor===`${side}:${slot}`)card.className+=' acting-glow';
@@ -62,14 +66,14 @@ function renderRoster(side){
 }
 if(globalThis.RankBattle3D)RankBattle3D.onPick=(key,point)=>{
  if(busy||ended()||!motionEnabled()||!/^1:[0-7]$/.test(key))return;
- const slot=Number(key.split(':')[1]),card=$('enemy-roster').children[slot];if(!card||card.disabled)return;
+ const slot=Number(key.split(':')[1]),card=$('enemy-roster').querySelector('[data-enemy-slot="'+slot+'"]');if(!card||card.disabled)return;
  pickedModelPoint=point;card.click();
 };
 function positionIndividualCommand(){
  const panel=$('individual-commands'),arena=document.querySelector('.arena');
  if(!panel||!arena)return;
  if(selected===null||!motionEnabled()){panel.style.position='';panel.style.left='';panel.style.top='';return;}
- const card=$(selectedSide?'enemy-roster':'ally-roster').children[selected];if(!card)return;
+ const card=$(selectedSide?'enemy-roster':'ally-roster').querySelector('[data-'+(selectedSide?'enemy':'ally')+'-slot="'+selected+'"]');if(!card)return;
  const a=arena.getBoundingClientRect();let c=card.getBoundingClientRect();if(selectedSide===1&&pickedModelPoint){const stage=$('battle-3d-stage').getBoundingClientRect();c={left:stage.left+pickedModelPoint.x*stage.width,top:stage.top+pickedModelPoint.y*stage.height,width:0,height:0};}arena.append(panel);
  panel.style.position='absolute';panel.style.left=Math.max(0,Math.min(a.width-panel.offsetWidth,c.left-a.left+c.width/2-panel.offsetWidth/2))+'px';
  panel.style.top=Math.max(0,Math.min(a.height-panel.offsetHeight,c.top-a.top+c.height-panel.offsetHeight))+'px';
@@ -269,7 +273,7 @@ function appendLog(events,round,output=null,heading=true){
  if(e.kind==='condition-round'){appendAction(`${actorLabel(e.target)}：${effectLabel({effectUid:e.uid,effectValue:e.before.current-e.before.base})}の効果が切れた`);i++;continue;}
  if(e.kind==='turn-start-condition'){const same=[];while(i<events.length){const x=events[i];if(x.kind!==e.kind||x.source.side!==e.source.side||x.source.slot!==e.source.slot||x.uid!==e.uid)break;same.push(x);i++;}const label=conditionName(e.uid);appendAction(`${actorLabel(e.source)}の${label}：${same.map(x=>actorLabel(x.target)+' '+label).join('、')}`);continue;}
  if(e.kind==='condition-damage'||e.kind==='condition-countdown'){appendAction(`${actorLabel(e.target)}：${e.kind==='condition-damage'?`状態ダメージ ${e.damage}`:e.kill?'カウントダウン終了':`カウントダウン 残り${e.remainingTurns}`}${e.kill?'・死亡':''}`);i++;continue;}
- if(e.kind==='jack-idle'){appendAction(`${actorLabel(e.source)}はジャックで何もしなかった`);i++;continue;}
+ if(e.kind==='jack-idle'){appendAction(`${actorLabel(e.source)}は こんらんしている`);i++;continue;}
  if(e.kind==='cannot-act'){appendAction(`${actorLabel(e.source)}は行動できない`);i++;continue;}
  if(e.kind==='heal'||e.kind==='heal-unavailable'){const same=[];while(i<events.length){const x=events[i];if(!['heal','heal-unavailable'].includes(x.kind)||x.source.side!==e.source.side||x.source.slot!==e.source.slot)break;same.push(x);i++;}const results=formatHitResults(same,healLogResult);if(results.length)appendAction(`${actorLabel(e.source)}の${state.parties[e.source.side].members[e.source.slot].antenna.name}：${results.join('\n')}`);continue;}
  if(['attack','shot','shot-unavailable','physical-reflection'].includes(e.kind)){const same=[],isShot=['shot','shot-unavailable'].includes(e.kind),kinds=isShot?['shot','shot-unavailable']:['attack','physical-reflection'];while(i<events.length){const x=events[i];if(!kinds.includes(x.kind)||x.source.side!==e.source.side||x.source.slot!==e.source.slot)break;same.push(x);i++;}appendAction(`${actorLabel(e.source)}の${isShot?(state.parties[e.source.side].members[e.source.slot].antenna.name||'属性アンテナ'):'打撃'}：${formatHitResults(same,attackLogResult).join('\n')}`);continue;}
@@ -316,18 +320,19 @@ async function playRound(result,round){
   const tick=()=>{const now=performance.now();if(!paused&&!document.hidden&&!wasHidden)remaining-=now-last;last=now;wasHidden=!!document.hidden;if(finishPlayback||remaining<=0)done();else timer=setTimeout(tick,25)};
   advancePlayback=done;timer=setTimeout(tick,25);
  });};
- let batchQueue=null,batchItem=null;
- const show=async(view,cues,labels=[])=>{if(batchItem){if(cues.some(c=>c.stage==='attack')){batchItem.view=view;batchItem.cues=cues;batchItem.labels=labels;batchItem.title=$('arena-message').textContent;}else batchItem.reactions.push(...cues);return;}if(finishPlayback)return;const played=motionsOn?await globalThis.RankBattle3D?.present(view,cues,labels):false;if(!played&&!finishPlayback)await wait();};
+ let batchQueue=null,batchItem=null,currentCastRows=[];
+ const show=async(view,cues,labels=[])=>{if(motionsOn&&cues.some(c=>c.stage==='cast')){for(const c of cues.filter(c=>c.stage==='cast')){const [side,slot]=c.key.split(':').map(Number),actor=state.parties[side].members[slot];const rows=currentCastRows;const saved=rows.filter(e=>e.source?.side===side&&e.source?.slot===slot&&e.presentation?.[side]?.[slot]).at(-1)?.presentation[side][slot];if(actor&&saved){actor.ap=saved.ap;renderRoster(side);}}}if(batchItem){if(cues.some(c=>c.stage==='attack')){batchItem.view=view;batchItem.cues=cues;batchItem.labels=labels;batchItem.title=$('arena-message').textContent;}else batchItem.reactions.push(...cues);return;}if(finishPlayback)return;const played=motionsOn?await globalThis.RankBattle3D?.present(view,cues,labels):false;if(!played&&!finishPlayback)await wait();};
  const phaseKinds=new Set(['guard','turn-start-condition','condition-recovery','condition-up','condition-round','condition-damage','condition-countdown']);
  appendLog([],round);
- const visualGroups=playbackGroups(result.events.filter(e=>RankBattleNativeMessages.appliedStart(e))).flatMap(allRows=>{const chunks=motionsOn&&globalThis.RankBattleDirector?RankBattleDirector.hitGroups(allRows):[allRows];return chunks.map((rows,i)=>({rows,allRows,first:i===0,last:i===chunks.length-1}));});
- if(motionsOn)globalThis.RankBattleDirector?.attackChains(visualGroups);
+ const visualEvents=motionsOn?RankBattleMotion.cardChanges(result.events,motionCardState):result.events;
+ let visualGroups=playbackGroups(visualEvents.filter(e=>RankBattleNativeMessages.appliedStart(e))).flatMap(allRows=>{const chunks=motionsOn&&globalThis.RankBattleDirector?RankBattleDirector.hitGroups(allRows):[allRows];return chunks.map((rows,i)=>({rows,allRows,first:i===0,last:i===chunks.length-1}));});
+ if(motionsOn){globalThis.RankBattleDirector?.attackChains(visualGroups);globalThis.RankBattleDirector?.castChains(visualGroups,ref=>state.parties[ref.side].members[ref.slot]?.antenna?.action?.action_uid);visualGroups=RankBattleDirector.castResultGroups(visualGroups);}
  if(motionsOn&&globalThis.RankBattle3D)RankBattle3D.onTitle=text=>{if(!finishPlayback)$('arena-message').textContent=text;};
  const approachedChains=new Set();
- for(const {rows,allRows,first,last,chain,nextAttack} of visualGroups){
+ for(const {rows,allRows,first,last,chain,nextAttack,castChain,castLeader} of visualGroups){
   if(motionsOn&&rows.every(e=>e.kind==='cannot-act')){appendLog(allRows,round,$('battle-log'),false);continue;}
   const batched=motionsOn&&chain?.keys.length>0;if(batched){$('arena-message').dataset.batchPending='1';batchQueue??=[];batchItem={cues:[],reactions:[]};batchQueue.push(batchItem);}
-  const output=el('ol','');appendLog(allRows,round,output,false);
+  const output=el('ol','');for(const logRows of castChain?castChain.actions.map(a=>a.rows):[allRows])appendLog(logRows,round,output,false);
   if(motionsOn&&rows.every(e=>Number(e.hitIndex)>0&&!e.target&&['no-valid-target','no-effective-target','no-use','効果のある対象なし','有効な対象なし'].includes(e.reason)))continue;
   const line=Array.from(output.children).find(n=>n.textContent);if(!line)continue;
   const split=line.textContent.indexOf('：'),phase=phaseKinds.has(rows[0].kind);
@@ -336,11 +341,13 @@ async function playRound(result,round){
   if(!phase&&hits>1)title+=` ×${hits}`;
   const center=$('arena-message');center.replaceChildren();
   center.className='';
+  currentCastRows=castChain?castChain.actions.flatMap(a=>a.rows):allRows;
   const source=rows[0].source,label=source?actorLabel(source):'';
   const actionUid=source?state.parties[source.side].members[source.slot]?.antenna?.action?.action_uid:null;
   const actionKind=rows.find(e=>['attack','shot','heal','antenna-effect'].includes(e.kind))?.kind;
   const target=allRows.find(e=>e.target&&e.reflectType===undefined)?.target;
-  const attackView=source&&target?{mode:'attack',approached:!!chain,chainMoves:chain?.moves,targetKeys:globalThis.RankBattleDirector.targetKeys(allRows),chain:chain?.id,attackers:chain?.keys,cameraTargets:chain?.targets,cameraSpan:chain?.span,key:source.side+':'+source.slot,side:source.side,targetSide:target.side,targetKey:target.side+':'+target.slot,targetCount:new Set(allRows.filter(e=>e.target&&e.reflectType===undefined).map(e=>e.target.side+':'+e.target.slot)).size}:null;
+  const jackReverse=rows.some(e=>e.jackType===3);
+  const attackView=!jackReverse&&source&&target?{mode:'attack',approached:!!chain,chainMoves:chain?.moves,targetKeys:globalThis.RankBattleDirector.targetKeys(allRows),chain:chain?.id,attackers:chain?.keys,cameraTargets:chain?.targets,cameraSpan:chain?.span,key:source.side+':'+source.slot,side:source.side,targetSide:target.side,targetKey:target.side+':'+target.slot,targetCount:new Set(allRows.filter(e=>e.target&&e.reflectType===undefined).map(e=>e.target.side+':'+e.target.slot)).size}:null;
   if(motionsOn&&chain&&!batched&&!approachedChains.has(chain.id)){approachedChains.add(chain.id);await show({...attackView,stage:'approach'},chain.keys.map(key=>({key,stage:'approach',motions:['走る']})));}
   const statusOnly=motionsOn&&globalThis.RankBattleDirector?.statusOnly(allRows);
   if(motionsOn&&!phase&&label&&title.startsWith(label)){center.textContent=(state.parties[source.side].members[source.slot]?.name||label)+title.slice(label.length);}
@@ -350,11 +357,29 @@ async function playRound(result,round){
   if(!first)center.replaceChildren();
   activeActor=first&&!phase&&source?`${source.side}:${source.slot}`:null;
   const turnEnd=['condition-recovery','condition-up','condition-round','condition-damage','condition-countdown'].includes(rows[0].kind);
-  cardMessages.clear();render();if(first&&!turnEnd&&!(motionsOn&&['guard','turn-start-condition'].includes(rows[0].kind))&&!(motionsOn&&actionKind==='attack'&&attackView)){await show(!phase&&source?(actionKind==='attack'&&attackView?attackView:{mode:'actor',key:source.side+':'+source.slot}):{mode:'team',side:source?.side??0},motionsOn?globalThis.RankBattleMotion.action(allRows).map(c=>({...c,stage:actionKind==='attack'?'attack':'cast',approach:first,actionKind,actionUid})):[]);center.replaceChildren();}activeActor=null;
+  if(castChain){if(castLeader)center.textContent=(source.side===0?'味方':'敵')+'の '+(state.parties[source.side].members[source.slot]?.antenna?.name||'アンテナ')+'！';else center.replaceChildren();}
+  if(motionsOn&&first&&(jackReverse||rows[0].kind==='jack-idle')){
+   const reaction=jackReverse?'jackReverse':'jackIdle',native=RankBattleVisualData.reactions[reaction];
+   const actionTitle=center.textContent;center.textContent=RankBattleNativeMessages.title(jackReverse?'jack-reverse':'jack-idle',state.parties[source.side].members[source.slot]?.name||label);render();
+   if(!jackReverse)await show({mode:'actor',key:source.side+':'+source.slot},[{key:source.side+':'+source.slot,steps:[{motion:native.motion,reaction,smooth:true}]}]);
+   if(rows[0].kind==='jack-idle'){activeActor=null;for(const child of Array.from(output.children))$('battle-log').append(child);continue;}
+   // The action title is scheduled at the end of the confusion prelude.
+  }
+  cardMessages.clear();render();if(first&&(!castChain||castLeader)&&!turnEnd&&!(motionsOn&&['guard','turn-start-condition'].includes(rows[0].kind))&&!(motionsOn&&actionKind==='attack'&&attackView)){await show(castChain?{mode:'team',side:castChain.side}:!phase&&source?(actionKind==='attack'&&attackView?attackView:{mode:'actor',key:source.side+':'+source.slot,jackReverse}):{mode:'team',side:source?.side??0},castChain?RankBattleDirector.castCues(castChain):motionsOn?globalThis.RankBattleMotion.action(allRows).map(c=>({...c,stage:actionKind==='attack'?'attack':'cast',approach:!jackReverse&&first,...(jackReverse?{prelude:'jackReverse',actionTitle:RankBattleNativeMessages.title(actionKind,state.parties[source.side].members[source.slot]?.name||label,state.parties[source.side].members[source.slot]?.antenna?.name||'',hits)}:{}),actionKind,actionUid})):[]);center.replaceChildren();}activeActor=null;
   if(motionsOn&&rows[0].kind==='guard')center.replaceChildren();
-  const stages=playbackStages(rows).flatMap((stage,index)=>motionsOn?RankBattleMotion.sides(stage).map(part=>({...part,reaction:index>0})):[{rows:stage,reaction:index>0}]);
+  // Thorns are presented together only after every strike, additional effect and return.
+  const isThorn=e=>e.kind==='physical-reflection'&&e.reflectType===3;
+  const strikeRows=batched?rows.filter(e=>!isThorn(e)):rows;
+  if(batched)batchItem.thornRows=rows.filter(isThorn);
+  const stages=playbackStages(strikeRows).flatMap((stage,index)=>motionsOn?RankBattleDirector.resultSides(stage).map(part=>({...part,reaction:index>0})):[{rows:stage,reaction:index>0}]);
+  let returnedBeforeReaction=false;
   for(const [stageIndex,part] of stages.entries()){
   const stage=part.rows;
+  if(motionsOn&&!batched&&attackView&&!returnedBeforeReaction&&stage.some(e=>e.kind==='physical-reflection')){
+   // Finish the return before opening the thorn/reaction camera, not concurrently.
+   await show({...attackView,stage:'return'},[{key:source.side+':'+source.slot,stage:'return',motions:['走る']}]);returnedBeforeReaction=true;
+  }
+  const shownAntennaEffects=new Set();
   cardMessages.clear();
   const deadTargets=new Set(rows.filter(e=>e.kill||e.hpAfter===0).map(e=>e.target?`${e.target.side}:${e.target.slot}`:null));
   for(const e of stage){
@@ -374,9 +399,14 @@ async function playRound(result,round){
    else if(['attack','shot','physical-reflection'].includes(e.kind)){text=e.cover&&Number.isFinite(e.damage)&&!e.blocked&&!e.miss&&!e.reflectionQueued?`${e.damage}ダメージ${e.kill?'・死亡':''}`:stripTargetParticle(attackLogResult({...e,cover:undefined}).replace(actorLabel(ref),''));glow=!e.miss&&!e.blocked&&!e.excitementFailed&&!e.blindnessFailed&&(e.damage>0||e.type===2||e.reflectionQueued);}
    else text=playbackFailure(e.reason);
    if(motionsOn)text=(text==='不発'||text==='効果のある対象無し'||['no-valid-target','no-effective-target','no-use','効果のある対象なし','有効な対象なし'].includes(e.reason))?'':globalThis.RankBattleNativeMessages?.result(e,text)??text;
+   if(motionsOn&&e.kind==='antenna-effect'){
+    const notice=key+':'+(e.effectUid??e.presentationConditionOnly??text);
+    if(!e.success||shownAntennaEffects.has(notice))text='';
+    else if(text)shownAntennaEffects.add(notice);
+   }
    if(text){const old=cardMessages.get(key),lines=old?.lines??[],hitLines=old?.hitLines??{};
     const quantity=e.kind!=='antenna-effect'&&(e.damage!==undefined||e.hpGain!==undefined||e.gain!==undefined||e.appliedHpGain>0);
-    const multiple=!statusOnly&&executedHitCount(allRows)>1;
+    const multiple=!(motionsOn&&e.kind==='antenna-effect')&&!statusOnly&&executedHitCount(allRows)>1;
     const hit=Number(e.hitIndex??0),formatted=multiple&&e.reflectType===undefined?`${hit+1}ヒット目 ${text}`:text;
     if(quantity){if(hitLines[hit]!==undefined)lines[hitLines[hit]]+='、'+text;else {hitLines[hit]=lines.length;lines.push(formatted);}}
     else if(!lines.includes(formatted))lines.push(formatted);
@@ -406,12 +436,22 @@ async function playRound(result,round){
    const sameAttackScene=motionsOn&&!phase&&actionKind==='attack'&&attackView&&!motionRows.some(e=>e.kind==='physical-reflection'||e.reflectType!==undefined);
    const simultaneous=motionsOn&&!phase&&!part.reaction&&actionKind==='attack'&&attackView&&motionRows.some(e=>e.kind==='attack'&&e.reflectType===undefined);
    const cues=motionsOn?RankBattleMotion.cardCues(motionRows,RankBattleMotion.effects(motionRows)).map(c=>({...c,...(!phase&&!part.reaction?{stage:'hit',actionKind,actionUid,synchronized:!!simultaneous}:{} )})):[];
-   if(simultaneous)cues.unshift(...RankBattleMotion.action(motionRows).map(c=>({...c,stage:'attack',actionKind,actionUid,synchronized:true})));
-   await show({...(sameAttackScene?attackView:{mode:'team',side:part.side??(stage[0]?.target??stage[0]?.source)?.side??0}),holdReactionPose:actionKind==='shot'&&!part.reaction&&stages.some(p=>p.reaction),preserveCamera:part.reaction&&actionKind==='shot',stage:!phase&&!part.reaction?'hit':undefined,actionKind,actionUid,resultTitle:motionsOn?RankBattleNativeMessages.damage(motionRows,ref=>state.parties[ref.side].members[ref.slot]?.name||''):null,multiHit:!phase&&!part.reaction&&hits>1,guardians:motionsOn?RankBattleDirector.reactionGuardians(motionRows,rows,part.reaction,actionKind):[]},cues,motionsOn?labels:[]);
+   for(const cue of cues)for(const step of cue.steps||[])if(step.reaction==='wake'){const [side,slot]=cue.key.split(':').map(Number);step.title=(state.parties[side].members[slot]?.name||'')+'は 目を覚ました';}
+   if(simultaneous){const autoReturn=!batched&&rows.some(e=>e.kind==='physical-reflection');
+    cues.unshift(...RankBattleMotion.action(motionRows).map(c=>({...c,stage:'attack',actionKind,actionUid,synchronized:true,autoReturn})));
+    if(autoReturn)returnedBeforeReaction=true;
+   }
+   await show({...(sameAttackScene?attackView:{mode:'team',side:part.side??(stage[0]?.target??stage[0]?.source)?.side??0}),effectTargetKeys:[...new Set(rows.filter(e=>e.kind==='shot'&&e.target&&e.reflectType===undefined).flatMap(e=>e.visualTargetKeys||[(e.cover?.originalTarget||e.target).side+':'+(e.cover?.originalTarget||e.target).slot]))],reflected:!!part.reflected||motionRows.some(e=>e.kind==='shot'&&e.reflectType!==undefined),excludeKeys:jackReverse&&['attack','shot','antenna-effect'].includes(actionKind)&&(part.side??stage[0]?.target?.side)===source?.side?[source.side+':'+source.slot]:[],holdReactionPose:actionKind==='shot'&&!part.reaction&&stages.some(p=>p.reaction),preserveCamera:part.reaction&&actionKind==='shot',stage:!phase&&!part.reaction?'hit':undefined,actionKind,actionUid,gutsTitle:motionsOn?RankBattleNativeMessages.guts(motionRows,ref=>state.parties[ref.side].members[ref.slot]?.name||''):null,resultTitle:motionsOn?RankBattleNativeMessages.damage(motionRows,ref=>state.parties[ref.side].members[ref.slot]?.name||''):null,multiHit:!phase&&!part.reaction&&hits>1,guardians:motionsOn?RankBattleDirector.reactionGuardians(motionRows,rows,part.reaction,actionKind):[]},cues,motionsOn?labels:[]);
   }cardMessages.clear();if(turnEnd)center.replaceChildren();render();
   }
-  if(last&&!batched&&motionsOn&&globalThis.RankBattleDirector&&actionKind==='attack'&&source&&state.parties[source.side].members[source.slot]?.hp>0){if(!finishPlayback)await globalThis.RankBattle3D?.present({...attackView,background:!!nextAttack},[{key:source.side+':'+source.slot,stage:'return',motions:['走る']}]);}
-  if(batched&&!nextAttack){const queue=batchQueue.filter(a=>a.cues.length);batchQueue=null;batchItem=null;delete $('arena-message').dataset.batchPending;if(queue.length){const batchTitle=(queue[0].view.side===0?'味方':'敵')+'の 攻撃!';$('arena-message').textContent=batchTitle;await show({...queue[0].view,batchTitle,batchResultTitle:RankBattleNativeMessages.damage(queue.flatMap(a=>a.damageRows||[]),ref=>state.parties[ref.side].members[ref.slot]?.name||''),guardians:[...new Set(queue.flatMap(a=>a.view.guardians||[]))],batch:queue},[],[]);}}else batchItem=null;
+  if(last&&!batched&&!returnedBeforeReaction&&motionsOn&&globalThis.RankBattleDirector&&actionKind==='attack'&&attackView&&source&&state.parties[source.side].members[source.slot]?.hp>0){if(!finishPlayback)await globalThis.RankBattle3D?.present({...attackView,background:!!nextAttack},[{key:source.side+':'+source.slot,stage:'return',motions:['走る']}]);}
+  if(batched&&!nextAttack){const queue=batchQueue.filter(a=>a.cues.length);batchQueue=null;batchItem=null;delete $('arena-message').dataset.batchPending;if(queue.length){const batchTitle=(queue[0].view.side===0?'味方':'敵')+'の 攻撃!';$('arena-message').textContent=batchTitle;await show({...queue[0].view,batchTitle,gutsTitle:RankBattleNativeMessages.guts(queue.flatMap(a=>a.damageRows||[]),ref=>state.parties[ref.side].members[ref.slot]?.name||''),batchResultTitle:RankBattleNativeMessages.damage(queue.flatMap(a=>a.damageRows||[]),ref=>state.parties[ref.side].members[ref.slot]?.name||''),guardians:[...new Set(queue.flatMap(a=>a.view.guardians||[]))],batch:queue},[],[]);
+    const thornRows=queue.flatMap(a=>a.thornRows||[]);
+    for(const part of RankBattleMotion.sides(thornRows)){
+     // One receiving scene per party, with every attacker's reaction starting together.
+     await show({mode:'team',side:part.side,actionKind:'attack',resultTitle:RankBattleNativeMessages.damage(part.rows,ref=>state.parties[ref.side].members[ref.slot]?.name||'')},RankBattleMotion.cardCues(part.rows,RankBattleMotion.effects(part.rows)),[]);
+    }
+   }}else batchItem=null;
   if(last){const log=$('battle-log');if(log.children.length)log.append(el('li','action-gap',''));for(const child of Array.from(output.children))log.append(child);log.scrollTop=log.scrollHeight;}
  }
  motionCardState=null;if(globalThis.RankBattle3D){RankBattle3D.onTitle=null;RankBattle3D.onCards=null;}

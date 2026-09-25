@@ -4403,6 +4403,11 @@ function runBasicShot(state,actor,command,{round,implCounter=round,randRange,gua
   const turn=new Uint8Array(64),t=new DataView(turn.buffer);
   for(const [offset,value]of [[0,source.side],[4,source.slot],[8,Number(actor.antenna.action.action_uid)],[16,candidate.mask],[20,candidate.center??9],[0x1c,hitIndex]])t.setUint32(offset,value,true);
   const firstTarget=candidate.targets[0];
+  // Presentation range includes registered downed members; combat eligibility is unchanged.
+  const visualMembers=state.parties[firstTarget.side].members;
+  const visualEligible=Array.from({length:visualMembers.length},(_,slot)=>!!visualMembers[slot]);
+  const visualSlots=info.range===9?visualEligible.flatMap((ok,i)=>ok?[i]:[]):positionalTargetSlots(visualEligible,candidate.center,info.range);
+  const visualTargetKeys=visualSlots.map(slot=>firstTarget.side+':'+slot);
   const firstResult=initializeBattleResult(turn,firstTarget.side,firstTarget.slot);
   const resourceOptions={sideMap:[0,1],coreFor:basicEffectCore};
   battleApplyResultApCost(state,firstResult,actor.antenna.action,resourceOptions);
@@ -4430,7 +4435,7 @@ function runBasicShot(state,actor,command,{round,implCounter=round,randRange,gua
      reflectedResults.push({source,target:{side:target.side,slot:target.slot},actionUid:actor.antenna.action.action_uid,
       reflections:Array.from({length:7},(_,i)=>i===4?reflection.saved:{actionUid:'0x00000000',value:0,flags:0})});
      // Preserve the ordinary receiver result; HP changes in the reflection phase.
-     events.push({round,kind:'shot',source,target:{side:target.side,slot:target.slot},flags64,damage:0,hpBefore:target.hp,hpAfter:target.hp,kill:false,reflectionQueued:true,hitIndex,...(cover?{cover}:{})});
+     events.push({round,kind:'shot',source,target:{side:target.side,slot:target.slot},visualTargetKeys,flags64,damage:0,hpBefore:target.hp,hpAfter:target.hp,kill:false,reflectionQueued:true,hitIndex,...(cover?{cover}:{})});
      continue;
     }
    }else if(route.route==='damage-stage'){
@@ -4460,7 +4465,7 @@ function runBasicShot(state,actor,command,{round,implCounter=round,randRange,gua
      recordNativeConditionHit(state.resultBookkeeping.enemyConditionHistory,{uid:additionalCondition.uid,sourceSide:actor.side,targetSide:target.side,targetSlot:target.slot,battleVersion:8});
     }
    }
-   events.push({round,kind:'shot',source,target:{side:target.side,slot:target.slot},flags64,damage,enhanced,hpBefore,hpAfter:target.hp,kill:hpBefore>0&&target.hp===0,reflected,hitIndex,...(prediction?{preUseResult:{...preUseResult,resultC0:0}}:{}),reason:route.reason,...(route.route==='blocked'?{blocked:route.reason}:{}),...(guts.guts?{guts:true}:{}),...(cover?{cover}:{}),...(additionalCondition?{additionalCondition:{...additionalCondition,current:battleConditionValue(target,additionalCondition.uid)}}:{})});
+   events.push({round,kind:'shot',source,target:{side:target.side,slot:target.slot},visualTargetKeys,flags64,damage,enhanced,hpBefore,hpAfter:target.hp,kill:hpBefore>0&&target.hp===0,reflected,hitIndex,...(prediction?{preUseResult:{...preUseResult,resultC0:0}}:{}),reason:route.reason,...(route.route==='blocked'?{blocked:route.reason}:{}),...(guts.guts?{guts:true}:{}),...(cover?{cover}:{}),...(additionalCondition?{additionalCondition:{...additionalCondition,current:battleConditionValue(target,additionalCondition.uid)}}:{})});
   }
   // Every receiver in a generated Turn uses the same pre-UserTop charge.
   // Consume it after this batch's numeric generation, before the next repeat
@@ -4869,7 +4874,7 @@ function runBasicRound(state,{party='attack',enemyParty='attack',individual={},c
   const next=structuredClone(state),b=next.basic,events=[],guards=new Set();
   if(capturePresentation)Object.defineProperty(events,'push',{value:function(...rows){
     const view=next.parties.map(p=>p.members.map(a=>a?{hp:a.hp,ap:a.ap,conditions:structuredClone(a.conditions)}:null));
-    return Array.prototype.push.apply(this,rows.map(e=>({...e,presentation:view})));
+    return Array.prototype.push.apply(this,rows.map(e=>({...e,presentation:view,...(e.source&&['attack','shot','heal','antenna-effect'].includes(e.kind)?{jackType:battleConditionValue(next.parties[e.source.side].members[e.source.slot],'8700005F')>0?next.parties[e.source.side].members[e.source.slot].jackDecision?.type??0:0}:{})})));
   }});
   b.implCounter=battleRoundCounter({battleSeed:b.battleSeed,savedRoundCount:b.savedRoundCount});
   // Record the simulator's draws, including rejection retries, for reproducible audits.

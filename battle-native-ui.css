@@ -118,7 +118,7 @@
 .battle-roster .resource-bar.ap::after{background-image:url("images/battle-ui/Battle00BarBase01Frame.png")}
 .battle-roster .resource-fill{height:66.667%;position:relative;top:16.667%;background-image:url("images/battle-ui/Window_Battle00BarHP.png");background-size:100% 100%}
 .battle-roster .resource-bar.ap .resource-fill{background-image:url("images/battle-ui/Window_Battle00BarAP.png");background-size:100% 100%}
-.battle-roster .combatant-status-icons{position:absolute;left:calc(2.4 * var(--card-u));top:calc(2.4 * var(--card-u));width:calc(76 * var(--card-u));height:calc(40 * var(--card-u));display:grid;grid-template-columns:repeat(4,calc(19 * var(--card-u)));grid-auto-rows:calc(20 * var(--card-u));gap:0;margin:0;z-index:2;align-content:end}
+.battle-roster .combatant-status-icons{position:absolute;left:calc(2.4 * var(--card-u));top:calc((42.4 - 20 * var(--status-rows,2)) * var(--card-u));width:calc(76 * var(--card-u));height:calc(20 * var(--status-rows,2) * var(--card-u));display:grid;grid-template-columns:repeat(4,calc(19 * var(--card-u)));grid-auto-rows:calc(20 * var(--card-u));gap:0;margin:0;z-index:2;align-content:end}
 .battle-roster .combatant-status-icon{width:calc(19.2 * var(--card-u));height:calc(19.2 * var(--card-u));max-width:none}
 .battle-roster .order-label{position:absolute;top:calc(163 * var(--card-u));left:0;right:0;font-size:calc(10 * var(--card-u));line-height:1.1;min-height:calc(20 * var(--card-u));color:white;text-shadow:1px 1px 2px #000}
 .native-card-text{color:transparent!important;text-shadow:none!important;background-repeat:no-repeat;background-position:left center;background-size:var(--card-text-width) var(--card-text-height);width:var(--card-text-width)}
@@ -178,3 +178,11 @@
 .battle-roster .resource-number{top:calc(-1 * var(--card-u))}
 /* Move the command row down by one 25px line at the 1280px reference width. */
 .motion-arena .party-commands{transform:translateY(1.953125cqw)}
+
+/* Keep eight-slot card sizing, center only populated slots without renumbering. */
+.battle-roster{grid-template-columns:repeat(var(--roster-count,8),minmax(0,calc((100% - 63px)/8)));justify-content:center}
+.motion-arena .ally-roster{grid-template-columns:repeat(var(--roster-count,8),minmax(0,calc((100% - 4.2%)/8)));justify-content:center}
+@media(max-width:1000px){.battle-roster{grid-template-columns:repeat(var(--roster-count,8),minmax(0,calc((100% - 28px)/8)))}}
+/* Native 425 Window_Battle00BtnBase00: 1248 x 272, CommandOut hides it.
+   Extend with the simulator's extra individual-order line; alpha matched to reference. */
+.motion-arena:not(.game-presentation):not(.motion-ended)>.command-dock::before{content:'';position:absolute;inset:0 -.1% -1cqw;z-index:-1;background:rgba(0,0,0,.3);border-radius:1.4cqw;pointer-events:none}

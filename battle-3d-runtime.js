@@ -21,10 +21,13 @@
   const object=new THREE.Group();object.add(mesh);while(assets.size>24){const oldest=assets.keys().next().value,item=assets.get(oldest);assets.delete(oldest);item.then(t=>{t.mesh.geometry.dispose();for(const m of Array.isArray(t.mesh.material)?t.mesh.material:[t.mesh.material])m.dispose();});}return {...template,object,mesh,materialNames:template.materialNames.slice()};
  }
  };
- const names=['待機','ふらふら','倒れる','もがく','待機（反転）','走る','走る（反転）','技1','技2','防御','回避','ダメージ','ダウン','起き上がる','喜ぶ','悲しむ','楽しむ'];
+ const names=['待機','ふらふら','倒れる','もがく','待機（反転）','走る','前進','技1','技2','防御','回避','ダメージ','ダウン','起き上がる','喜ぶ','悲しむ','楽しむ'];
  // Motion scripts publish one shared slot, so load them sequentially exactly once.
- for(const name of new Set([...names,...Object.values(globalThis.RankBattleVisualData?.conditions||{}).map(d=>d.motion).filter(Boolean)])){const row=DENPA_MOTIONS.animations.find(x=>x.labelJa===name);if(!row)throw Error('モーションがありません: '+name);await loadScript(row.script);motions.set(name,await loadMotion(DENPA_MOTION_DATA,false));globalThis.DENPA_MOTION_DATA=null;}
- let fx=null;try{fx=await globalThis.createBattleEffects?.(renderer,loadScript)}catch(error){console.warn('Battle effects unavailable:',error);parent.postMessage({type:'rank-battle-3d-warning',message:'エフェクトを準備できなかったため、モーションのみ再生します。'},'*');}
+ async function loadMotions(list){for(const name of new Set(list)){if(motions.has(name))continue;const row=DENPA_MOTIONS.animations.find(x=>x.labelJa===name);if(!row)throw Error('モーションがありません: '+name);await loadScript(row.script);motions.set(name,await loadMotion(DENPA_MOTION_DATA,false));globalThis.DENPA_MOTION_DATA=null;}}
+ // Standing actors need only these clips. Other battle clips prepare in the background.
+ await loadMotions(['待機','待機（反転）','倒れる']);
+ const motionsReady=loadMotions([...names,...Object.values(globalThis.RankBattleVisualData?.reactions||{}).map(d=>d.motion).filter(Boolean),...Object.values(globalThis.RankBattleVisualData?.conditions||{}).map(d=>d.motion).filter(Boolean)]).then(()=>null,error=>error);
+ let fx=null;const effectsReady=Promise.resolve().then(()=>globalThis.createBattleEffects?.(renderer,loadScript)).then(value=>{if(disposed)value?.dispose();else{fx=value;renderer.resetState?.();}}).catch(error=>{console.warn('Battle effects unavailable:',error);parent.postMessage({type:'rank-battle-3d-warning',message:'エフェクトを準備できなかったため、モーションのみ再生します。'},'*');});
  const shadows=globalThis.RankBattleShadows?.create(THREE,scene);
  const arena=globalThis.RankBattleArena?.create(THREE);if(arena)scene.add(arena.group);
  let lastOutcomeY=null;
@@ -39,11 +42,11 @@
    if(values.length>1){values.forEach((value,i)=>{const piece=document.createElement('span');piece.className='damage-piece'+(data.criticals?.[i]?' critical':'');piece.textContent=globalThis.RankBattleCamera?.number(value)??value;globalThis.RankBattleNumbers?.render(piece,piece.textContent,data.enhanceds?.[i]?'enhanced':data.tone);const offset=RankBattlePlacement.popupOffset(i,entry.track.actor.key);piece.style.left=offset.x+'px';piece.style.top=offset.y+'px';piece.popupIndex=i;entry.label.append(piece);});}
    }
   }
-  else{entry.amountSignature=null;entry.label.textContent='';globalThis.RankBattleNumbers?.clear(entry.label);entry.foot.textContent=raw;}
-  if(data.footText!==undefined)entry.foot.textContent=data.footText;
+  else{const text=RankBattleMotion.sceneFootText(raw,entry.seenFootNotices??=new Set());if(text!==null){entry.amountSignature=null;entry.label.textContent='';globalThis.RankBattleNumbers?.clear(entry.label);entry.foot.textContent=text;}}
+  if(data.footText!==undefined){const text=RankBattleMotion.sceneFootText(data.footText,entry.seenFootNotices??=new Set());if(text!==null)entry.foot.textContent=text;}
  }
  function animateNumbers(entry,dt){RankBattleNumbers.animate?.(entry.label,dt);for(const piece of entry.label.children)RankBattleNumbers.animate?.(piece,dt);}
- function pose(entry,dt){animateNumbers(entry,dt);const sample=entry.track.sample(dt,motions);entry.model.setMotion(sample.name);entry.model.update(sample.seconds,dt);
+ function pose(entry,dt){animateNumbers(entry,dt);const sample=entry.track.sample(dt,motions);entry.model.setMotion(sample.name,{smooth:!!sample.conditionUid||!!sample.smooth,snap:!!entry.poseSnap});entry.poseSnap=false;entry.model.update(sample.seconds,dt);
   // Native UpdateMoveToBack resets position/facing and resumes wait on arrival.
   const currentStep=entry.track.steps.filter(s=>s.at<=entry.track.time).at(-1);
   if(currentStep?.travel==='return'&&entry.track.time>=currentStep.at+currentStep.duration){entry.returning=false;entry.staged=false;entry.strikePosition=null;}
@@ -51,17 +54,23 @@
 
   if(sample.token){const offset=RankBattlePlacement.popupOffset(0,entry.track.actor.key,width/1280);entry.label.style.transform='translate(-50%,calc(-50% + '+(entry.label.children.length?0:offset.y)+'px))';}
  }
- function layout(){const keys=new Set(RankBattleMotion.visibleKeys(desired,view)),front=(view.guardians||[]).filter(k=>keys.has(k));for(const [key,e]of actors){const a=e.track.actor;e.model.root.visible=keys.has(key);e.label.hidden=e.foot.hidden=!keys.has(key);const index=front.indexOf(key);const party=desired.filter(v=>v.side===a.side),order=party.findIndex(v=>v.key===key),sign=a.side===0&&view.mode!=='attack'?-1:1;e.model.root.position.set(view.mode==='actor'?0:sign*(index>=0?(index-(front.length-1)/2)*150:(order-(party.length-1)/2)*150),0,(a.side===0?250:-250)+(index>=0?(a.side===0?-160:160):0));e.basePosition=e.model.root.position.clone();e.strikePosition=null;e.model.root.rotation.y=a.side===0?Math.PI:0;e.hp.hidden=!keys.has(key)||!view.hpBars;const ratio=a.maxHp>0?Math.max(0,Math.min(1,a.hp/a.maxHp)):0;e.hpFill.style.width=ratio*100+'%';e.hp.title='HP '+a.hp+' / '+a.maxHp;RankBattleHud.update(e.hud,a);}
+ function layout(){const keys=new Set(RankBattleMotion.visibleKeys(desired,view)),front=(view.mode==='attack'?[]:view.guardians||[]).filter(k=>keys.has(k));for(const [key,e]of actors){const a=e.track.actor;e.model.root.visible=keys.has(key);e.label.hidden=e.foot.hidden=!keys.has(key);const index=front.indexOf(key);const party=desired.filter(v=>v.side===a.side),order=party.findIndex(v=>v.key===key),sign=a.side===0&&view.mode!=='attack'?-1:1;e.model.root.position.set(view.mode==='actor'?0:sign*(index>=0?(index-(front.length-1)/2)*150:(order-(party.length-1)/2)*150),0,(a.side===0?250:-250)+(index>=0?(a.side===0?-160:160):0));e.basePosition=e.model.root.position.clone();e.strikePosition=null;e.model.root.rotation.y=a.side===0?Math.PI:0;e.hp.hidden=!keys.has(key)||!view.hpBars;const ratio=a.maxHp>0?Math.max(0,Math.min(1,a.hp/a.maxHp)):0;e.hpFill.style.width=ratio*100+'%';e.hp.title='HP '+a.hp+' / '+a.maxHp;RankBattleHud.update(e.hud,a);}
   if(view.mode==='attack')for(const move of (view.chainMoves||[{key:view.key,targetKey:view.targetKey,targetKeys:view.targetKeys}])){const a=actors.get(move.key),t=actors.get(move.targetKey);if(a&&t){const b=RankBattlePlacement.body(a),tb=RankBattlePlacement.body(t);view.battleSize=Math.max(view.battleSize||1,b.battleSize||1,tb.battleSize||1);const range=(move.targetKeys||[move.targetKey]).map(k=>actors.get(k)?.basePosition).filter(Boolean);const center=t.basePosition.clone();if(range.length){center.x=(Math.min(...range.map(p=>p.x))+Math.max(...range.map(p=>p.x)))/2;center.z=(Math.min(...range.map(p=>p.z))+Math.max(...range.map(p=>p.z)))/2;}a.strikePosition=center;const direction=a.basePosition.clone().sub(center);direction.y=0;if(direction.lengthSq()<1)direction.set(0,0,a.track.actor.side===0?1:-1);direction.normalize();a.strikePosition.addScaledVector(direction,Math.max(50,b.radius)+Math.max(50,tb.radius));}}
 
   width=0;}
- function fieldTransform(info){return RankBattlePlacement.field(THREE,info,view.side);}
+ function fieldTransform(info){const points=(view.effectTargetKeys||[]).map(k=>actors.get(k)?.basePosition?.x).filter(Number.isFinite);const center=points.length?(Math.min(...points)+Math.max(...points))/2:0;return RankBattlePlacement.field(THREE,info,view.side,center);}
  function updateTimeline(){if(!phase)return;const cardUpdates=[];
   for(const event of phase.timeline){if(event.played||event.at>phase.elapsed+1e-8)continue;event.played=true;if(event.kind==='sound'){parent.postMessage({type:'rank-battle-3d-audio',id:phase.id,sound:event.sound},'*');continue;}if(event.kind==='title'){parent.postMessage({type:'rank-battle-3d-title',text:event.text},'*');continue;}const e=event.entry,s=event.step;
    if(event.kind==='cover-camera'){
     cameraView={mode:'team',coverReaction:true,battleSize:view.battleSize,side:view.targetSide,count:desired.filter(a=>a.side===view.targetSide).length};cameraAnchor=null;cameraTime=0;
     // A front-party cut uses the normal ally order, not the rear strike formation.
-    for(const actor of actors.values())if(actor.track.actor.side===0&&view.targetSide===0){actor.basePosition.x=-actor.basePosition.x;actor.model.root.position.x=actor.basePosition.x;}
+    const front=(view.guardians||[]).filter(key=>actors.get(key)?.track.actor.side===view.targetSide);
+    for(const [key,actor] of actors){if(actor.track.actor.side!==view.targetSide)continue;
+     const index=front.indexOf(key),sign=view.targetSide===0?-1:1;
+     if(index>=0){actor.basePosition.x=sign*(index-(front.length-1)/2)*150;actor.basePosition.z=(view.targetSide===0?250:-250)+(view.targetSide===0?-160:160);}
+     else if(view.targetSide===0)actor.basePosition.x=-actor.basePosition.x;
+     actor.model.root.position.copy(actor.basePosition);
+    }
     for(const actor of actors.values()){const shown=actor.track.actor.side===view.targetSide;actor.model.root.visible=shown;actor.label.hidden=actor.foot.hidden=!shown;}
     updateCamera();continue;
    }
@@ -70,21 +79,28 @@
    else{const previous=e.lastPopup;let data=s;
     // Keep rapid successive hits visible together. Cover hits already carry all values.
     if(previous&&previous.data.tone===s.tone&&(['heal','ap'].includes(s.tone)||s.tone==='damage'&&event.at-previous.at<.3))data={...s,amounts:[...(previous.data.amounts||[previous.data.text]),...(s.amounts||[s.text])],enhanceds:[...(previous.data.enhanceds||[!!previous.data.enhanced]),...(s.enhanceds||[!!s.enhanced])],criticals:[...(previous.data.criticals||[!!previous.data.critical]),...(s.criticals||[!!s.critical])]};
-    setLabel(e,data);e.lastPopup={at:event.at,data};e.amountAge=0;
+    const priorAges=data!==s?(e.label.children.length&&e.label.children[0].popupIndex!==undefined?Array.from(e.label.children).map(p=>p.numberAge||0):[e.label.numberAge||0]):[];
+    setLabel(e,data);for(let i=0;i<priorAges.length;i++)if(e.label.children[i])RankBattleNumbers.animate(e.label.children[i],priorAges[i]);e.lastPopup={at:event.at,data};e.amountAge=0;
    }
   }
   if(cardUpdates.length)parent.postMessage({type:'rank-battle-3d-cards',id:phase.id,updates:cardUpdates},'*');
  }
  function updateField(){if(!phase?.field||phase.fieldPlayed||phase.elapsed<phase.field.effectAt)return;phase.fieldPlayed=true;fx?.play(phase.field.effects,new THREE.Vector3(0,0,0),phase.field.placements,fieldTransform);}
- function clearLabels(){labels.clear();for(const e of actors.values()){e.lastPopup=null;e.amountSignature=null;e.label.textContent='';e.label.className='amount';globalThis.RankBattleNumbers?.clear(e.label);e.label.style.transform='translate(-50%,-50%)';e.foot.textContent='';}}
+ function clearLabels(){labels.clear();for(const e of actors.values()){e.seenFootNotices=new Set();e.lastPopup=null;e.amountSignature=null;e.label.textContent='';e.label.className='amount';globalThis.RankBattleNumbers?.clear(e.label);e.label.style.transform='translate(-50%,-50%)';e.foot.textContent='';}}
  function complete(){if(!phase)return;parent.postMessage({type:'rank-battle-3d-done',id:phase.id,played:phase.duration>0},'*');phase=null;}
  function switchView(next){next=next||{mode:'team',side:1};
   const keep=(view.outcome&&next.outcome)||(next.preserveCamera&&view.mode==='team'&&next.mode==='team'&&view.side===next.side)||view.mode==='attack'&&next.mode==='attack'&&view.side===next.side&&view.targetSide===next.targetSide&&(next.chain&&next.chain===view.chain||next.key===view.key&&next.stage==='return');
+  if(keep&&next.preserveCamera){
+   // SetupConditionDirection changes only affected actors, not the party layout.
+   next.guardians=view.guardians;view=next;clearLabels();
+   for(const e of actors.values())for(const step of e.track.steps)step.holdLastPose=false;
+   return;
+  }
   if(!keep){fx?.clear();cameraTime=0;cameraView=null;cameraAnchor=null;}
   // Native result setup resets each ally before its win/loss direction (cb0988/cb0a34).
   // Do not carry the last combat down pose into the result reaction's idle fallback.
-  const moving=new Map();for(const [key,e] of actors){if(keep&&e.returning&&e.track.time<e.track.duration)moving.set(key,{base:e.basePosition?.clone(),strike:e.strikePosition?.clone()});else{if(!keep)e.returning=false;const dead=e.track.visualDead;e.track.sync(e.track.actor,true);e.track.visualDead=next.outcome&&e.track.actor.side===0?false:dead;}}
-  if(!keep)for(const e of actors.values()){e.staged=false;e.returning=false;}
+  const moving=new Map();for(const [key,e] of actors){if(keep&&e.returning&&e.track.time<e.track.duration)moving.set(key,{base:e.basePosition?.clone(),strike:e.strikePosition?.clone()});else{if(!keep)e.returning=false;const dead=e.track.visualDead,idleTime=e.track.idleTime;e.track.sync(e.track.actor,true);if(!next.outcome)e.track.idleTime=idleTime;e.track.visualDead=next.outcome&&e.track.actor.side===0?false:dead;}}
+  if(!keep)for(const e of actors.values()){e.staged=false;e.returning=false;e.poseSnap=true;}
   view=next;view.count=desired.filter(a=>a.side===view.side).length;clearLabels();layout();
   for(const [key,pos] of moving){const e=actors.get(key);e.basePosition=pos.base;e.strikePosition=pos.strike;e.returning=true;}
   if(!cameraView){cameraView={...view,targetCount:Math.max(view.targetCount||0,view.cameraSpan||0)};cameraAnchor=view.mode==='attack'?(view.side===1&&(view.targetCount>=6||view.battleSize>=3)?[0,0,250]:actors.get(view.targetKey)?.basePosition?.toArray()):view.mode==='actor'?actors.get(view.key)?.basePosition?.toArray():null;
@@ -123,12 +139,15 @@
  async function reconcile(){if(building)return;building=true;
  try{do{const version=revision;
   for(const [key,e]of actors)if(!desired.some(a=>a.key===key&&JSON.stringify(a.spec)===e.signature)){e.model.dispose();e.label.remove();e.foot.remove();e.hp.remove();actors.delete(key)}
-  for(const a of desired){if(version!==revision)break;if(actors.has(a.key))continue;status.textContent='3Dキャラクターを準備中…';const signature=JSON.stringify(a.spec),model=await createBattleActor(a.spec,shared,renderer);
+  const visibleKeys=new Set(RankBattleMotion.visibleKeys(desired,view));
+  const ordered=desired.slice().sort((a,b)=>Number(visibleKeys.has(b.key))-Number(visibleKeys.has(a.key)));
+  for(const a of ordered){if(version!==revision)break;if(actors.has(a.key))continue;status.textContent='3Dキャラクターを準備中…';const signature=JSON.stringify(a.spec),model=await createBattleActor(a.spec,shared,renderer);
    if(disposed||version!==revision){model.dispose();break}
    const latest=desired.find(x=>x.key===a.key)||a;
-   const label=document.createElement('div');label.className='amount';const foot=document.createElement('div');foot.className='foot-log';const hp=document.createElement('div');hp.className='party-hp';const hpFill=document.createElement('span');hpFill.className='party-hp-fill';hp.append(hpFill);overlay.append(label,foot,hp);const entry={model,signature,label,foot,hp,hpFill,track:new RankBattleMotion.Track(latest),hud:RankBattleHud.create(hp)};actors.set(a.key,entry);scene.add(model.root);
+   const label=document.createElement('div');label.className='amount';const foot=document.createElement('div');foot.className='foot-log';const hp=document.createElement('div');hp.className='party-hp';const hpFill=document.createElement('span');hpFill.className='party-hp-fill';hp.append(hpFill);overlay.append(label,foot,hp);const entry={model,signature,label,foot,hp,hpFill,track:new RankBattleMotion.Track(latest),hud:RankBattleHud.create(hp)};actors.set(a.key,entry);model.root.userData.battleKey=a.key;scene.add(model.root);
    // Equal spacing on two team rows, with original slot positions retained after deaths.
    layout();pose(entry,0);
+   await new Promise(resolve=>setTimeout(resolve,0));
   }
   if(version===revision)break;
  }while(!disposed);
@@ -140,6 +159,8 @@
   await new Promise(resolve=>setTimeout(resolve,0));
  }}
  await globalThis.RankBattleNumbers?.prepare?.();
+ const motionError=await motionsReady;if(motionError)throw motionError;
+ await effectsReady;
  await fx?.prepare(desired);status.textContent='';parent.postMessage({type:'rank-battle-3d-prepared'},'*');
  }catch(e){status.textContent='3D表示を準備できませんでした';parent.postMessage({type:'rank-battle-3d-error',message:String(e.message||e)},'*')}
  finally{building=false}
@@ -171,6 +192,7 @@
     const steps=planned.filter(s=>motions.has(typeof s==='string'?s:s.motion)).map(s=>view.holdReactionPose&&typeof s==='object'&&s.motion!=='ダウン'?{...s,holdLastPose:true}:s);
     if(steps.length){e.returning=cue.stage==='return';if(cue.stage==='approach'||cue.planned&&steps.some(s=>s.travel))e.staged=true;if(e.returning)e.staged=false;e.track.play(steps,motions);const delay=cue.stage==='hit'?(phase.field?.hitAt||0):0;
      for(const step of e.track.steps){step.at+=delay;
+      if(step.title)phase.timeline.push({kind:'title',at:step.at,text:step.title});
       if(step.cardUpdates?.length)phase.timeline.push({kind:'cards',at:step.at+(step.labelAt||0),entry:e,step});
       for(const sound of [step.sound,...(step.extraSounds||[])].filter(Boolean))phase.timeline.push({kind:'sound',at:step.at+sound.at,sound:sound.sound});
       if(step.effects?.length)phase.timeline.push({kind:'effect',at:step.at+(step.effectAt||0),entry:e,step});
@@ -183,8 +205,9 @@
    if(view.batch&&view.batchTitle)phase.timeline.push({kind:'title',at:0,text:view.batchTitle});
    if(view.resultTitle&&!view.batch){const impacts=phase.timeline.filter(e=>e.kind==='label'||e.kind==='cards');phase.timeline.push({kind:'title',at:impacts.length?Math.min(...impacts.map(e=>e.at)):0,text:view.resultTitle});}
    if(view.batch&&view.batchResultTitle){const impacts=phase.timeline.filter(e=>e.kind==='label'||e.kind==='cards');phase.timeline.push({kind:'title',at:impacts.length?Math.max(...impacts.map(e=>e.at)):0,text:view.batchResultTitle});}
+   if(view.gutsTitle){const impacts=phase.timeline.filter(e=>e.kind==='label'||e.kind==='cards');const at=(impacts.length?Math.max(...impacts.map(e=>e.at)):0)+.2;phase.timeline.push({kind:'title',at,text:view.gutsTitle});phase.duration=Math.max(phase.duration,at+.5);}
    // Cover uses the recipient-side view at impact; keep the attack/return clocks running.
-   if(view.mode==='attack'&&view.guardians?.length&&view.stage!=='return'){const impacts=phase.timeline.filter(e=>e.kind==='label'||e.kind==='cards');if(impacts.length)phase.timeline.unshift({kind:'cover-camera',at:Math.min(...impacts.map(e=>e.step?.at??e.at))});}
+   if(view.mode==='attack'&&view.guardians?.length&&view.stage!=='return'){const impacts=phase.timeline.filter(e=>e.kind==='label'||e.kind==='cards');if(impacts.length)phase.timeline.unshift({kind:'cover-camera',at:Math.max((view.batch||!view.approached)?0.5:0,Math.min(...impacts.map(e=>e.at)))});}
    if(view.outcome)phase.duration=Math.max(phase.duration,((RankBattleCamera.profile(view)?.frames||1)-1)/60);
    phase.timeline.sort((a,b)=>a.at-b.at);updateTimeline();
    if(!phase.duration||d.view?.background)complete();
