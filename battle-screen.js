@@ -74,15 +74,15 @@ function positionIndividualCommand(){
  if(!panel||!arena)return;
  if(selected===null||!motionEnabled()){panel.style.position='';panel.style.left='';panel.style.top='';return;}
  const card=$(selectedSide?'enemy-roster':'ally-roster').querySelector('[data-'+(selectedSide?'enemy':'ally')+'-slot="'+selected+'"]');if(!card)return;
- const a=arena.getBoundingClientRect();let c=card.getBoundingClientRect();if(selectedSide===1&&pickedModelPoint){const stage=$('battle-3d-stage').getBoundingClientRect();c={left:stage.left+pickedModelPoint.x*stage.width,top:stage.top+pickedModelPoint.y*stage.height,width:0,height:0};}arena.append(panel);
+ const rect=n=>globalThis.RankBattleFullscreen?.rect(n)??n.getBoundingClientRect();const a=rect(arena);let c=rect(card);if(selectedSide===1&&pickedModelPoint){const stage=rect($('battle-3d-stage'));c={left:stage.left+pickedModelPoint.x*stage.width,top:stage.top+pickedModelPoint.y*stage.height,width:0,height:0};}arena.append(panel);
  panel.style.position='absolute';panel.style.left=Math.max(0,Math.min(a.width-panel.offsetWidth,c.left-a.left+c.width/2-panel.offsetWidth/2))+'px';
  panel.style.top=Math.max(0,Math.min(a.height-panel.offsetHeight,c.top-a.top+c.height-panel.offsetHeight))+'px';
 }
 window.addEventListener('resize',positionIndividualCommand);
 function positionMotionLog(){const arena=document.querySelector('.arena'),cards=$('ally-roster'),center=arena?.querySelector('.arena-center');if(!arena||!cards||!center)return;
  if(!motionEnabled()||ended()){center.style.top='';center.style.transform='';return;}
- const a=arena.getBoundingClientRect(),r=cards.getBoundingClientRect();
- if(a.height&&r.height){center.style.top=Math.max(0,Math.min(r.top,...Array.from(cards.querySelectorAll('.combatant-portrait-holder')).map(n=>n.getBoundingClientRect().top))-a.top-Math.max(4,a.width/160))+'px';center.style.transform='translateY(-100%)';}
+ const rect=n=>globalThis.RankBattleFullscreen?.rect(n)??n.getBoundingClientRect();const a=rect(arena),r=rect(cards);
+ if(a.height&&r.height){center.style.top=Math.max(0,Math.min(r.top,...Array.from(cards.querySelectorAll('.combatant-portrait-holder')).map(n=>rect(n).top))-a.top-Math.max(4,a.width/160))+'px';center.style.transform='translateY(-100%)';}
 }
 if(typeof ResizeObserver!=='undefined'){const observer=new ResizeObserver(positionMotionLog);observer.observe($('ally-roster'));observer.observe(document.querySelector('.arena'));}
 window.addEventListener('resize',positionMotionLog);
@@ -110,7 +110,7 @@ function render(){
  $('progression-label').hidden=rapid();$('progression-style').disabled=busy;
  $('log-interval-label').hidden=rapid()||$('progression-style').value!=='game';$('log-interval').disabled=busy;
  document.querySelector('.arena').className='arena'+(busy&&!rapid()&&$('progression-style').value==='game'?' game-presentation':'')+(motionEnabled()?' motion-arena':'')+(motionEnabled()&&ended()?' motion-ended':'');
- const configuredLimit=Math.max(1,Number.parseInt($('round-limit').value,10)||10),nextRound=state.basic?.round??1,remaining=state.basic?.status==='ended'&&state.basic?.reason==='round-limit'?0:Math.max(0,configuredLimit-nextRound+1);$('remaining-rounds').textContent=`残り${remaining}ターン`;
+ const configuredLimit=Math.max(1,Number.parseInt($('round-limit').value,10)||10),nextRound=state.basic?.round??1,remaining=state.basic?.status==='ended'&&state.basic?.reason==='round-limit'?0:Math.max(0,configuredLimit-nextRound+1);$('remaining-rounds').hidden=busy||ended()||rapid()||loadError;$('remaining-rounds').textContent=`残り${remaining}ターン`;
  $(selectedSide===1&&selected!==null?'enemy-command-dock':'ally-command-dock').append($('individual-commands'));
  $('command-summary').hidden=rapid();$('damage-summary').hidden=rapid();$('log-title').textContent=rapid()?'敗北時戦闘ログ':'戦闘ログ';
  requestAnimationFrame(()=>{positionMotionLog();positionIndividualCommand();});
