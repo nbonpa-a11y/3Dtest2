@@ -100,8 +100,12 @@
   const states=new Map([...initial].map(([k,v])=>[k,structuredClone(v.conditions||[])]));
   return events.map((e,sequence)=>{const ref=e.target??e.source,k=key(ref),saved=ref&&e.presentation?.[ref.side]?.[ref.slot];if(!saved)return e;
    const before=new Map((states.get(k)||[]).map(c=>[Number(c.uid),c])),after=new Map((saved.conditions||[]).map(c=>[Number(c.uid),c]));
+   // Batched damage rows share the action's final snapshot. A later lethal hit
+   // clears conditions there, but earlier living hit cards must retain them.
+   const pendingDeath=saved.hp<=0&&!e.kill&&e.hpAfter!==0&&['attack','shot','physical-reflection','condition-damage'].includes(e.kind);
+   if(pendingDeath)for(const [uid,condition] of before)if(!after.has(uid))after.set(uid,condition);
    const conditionChanges=[...new Set([...before.keys(),...after.keys()])].filter(uid=>JSON.stringify(before.get(uid))!==JSON.stringify(after.get(uid))).map(uid=>({uid,sequence,value:after.has(uid)?structuredClone(after.get(uid)):null}));
-   states.set(k,structuredClone(saved.conditions||[]));return {...e,presentationConditionChanges:conditionChanges};
+   states.set(k,structuredClone([...after.values()]));return {...e,presentationConditionChanges:conditionChanges};
   });
  }
  function cardCues(rows,cues){

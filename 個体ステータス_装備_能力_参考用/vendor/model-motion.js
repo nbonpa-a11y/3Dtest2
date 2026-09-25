@@ -191,7 +191,7 @@ async function readMotion(url) {
   // The in-memory cache below already avoids duplicate downloads during a
   // session.  Revalidate the file on a new page load so a regenerated DPA at
   // the same stable URL cannot be paired with a newer OBJ from the manifest.
-  const response = await fetch(url, { cache: 'no-cache' });
+  const response = await fetch(url, { cache: /^data\/prepared\/[a-f0-9]+\.dpa$/.test(url) ? 'default' : 'no-cache' });
   if (!response.ok) throw new Error(`モーションを読み込めません (${response.status})`);
   const buffer = await response.arrayBuffer();
   const view = new DataView(buffer);

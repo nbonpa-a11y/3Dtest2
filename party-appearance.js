@@ -3,7 +3,7 @@ const data=globalThis.RANK_APPEARANCE_DATA,records=new Map(),byKey=new Map();
 let frame,ready,active=null,timer,scheduled,idleTimer,sequence=0;
 // Only generated pictures are stored here; party records remain independent.
 // Bump this revision whenever the appearance renderer or its materials change.
-const imageRevision='appearance-daccdde8c0aaa19b4851';
+const imageRevision='appearance-70291b56a4c3bfcbc93a';
 let imageDb;
 function openImageDb(){
  if(imageDb)return imageDb;

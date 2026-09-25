@@ -14,8 +14,8 @@
  texture(url,key){if(!url)return null;if(!textures.has(key)){const t=new THREE.TextureLoader().load(url);t.flipY=false;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.encoding=THREE.sRGBEncoding;textures.set(key,t)}return textures.get(key)},
  body(key,create){if(!bodies.has(key))bodies.set(key,create());return bodies.get(key)},
  async imagesReady(){if(loadingImages)await new Promise(f=>imageWaiters.push(f));if(imageErrors.length)throw Error('画像素材の読み込みに失敗しました')},
- async resource(kind,path){const key=kind+':'+path;if(!resources.has(key))resources.set(key,(async()=>{const entry=DENPA_EQUIPMENT_INDEX[kind]?.[path];if(!entry)throw Error('装備素材がありません: '+path);const cache=DENPA_EQUIPMENT_CACHE[kind];if(!cache[entry.key])await loadScript(entry.script);if(!cache[entry.key])throw Error('装備素材が空です');return cache[entry.key]})());return resources.get(key)},
- async asset(text,mtl){const key=mtl+'\n'+text;if(!assets.has(key))assets.set(key,(async()=>{const url=URL.createObjectURL(new Blob([text],{type:'text/plain'}));try{return await loadIndexedObj({obj:url,mtl:'',mtlText:mtl.replace(/^map_Kd.*$/gm,'')})}finally{URL.revokeObjectURL(url)}})());
+ async resource(kind,path){const key=kind+':'+path;if(!resources.has(key))resources.set(key,(async()=>{const entry=DENPA_EQUIPMENT_INDEX[kind]?.[path];if(!entry)throw Error('装備素材がありません: '+path);if(entry.prepared){const record={prepared:entry.prepared};await RankAssetLoader.preloadModel(record);return record;}const cache=DENPA_EQUIPMENT_CACHE[kind];if(!cache[entry.key])await loadScript(entry.script);if(!cache[entry.key])throw Error('装備素材が空です');return cache[entry.key]})());return resources.get(key)},
+ async asset(text,mtl){const key=mtl+'\n'+(globalThis.RankAssetLoader?.key(text)??text);if(!assets.has(key))assets.set(key,(async()=>{if(globalThis.RankAssetLoader)return RankAssetLoader.asset(text,mtl.replace(/^map_Kd.*$/gm,''));const url=URL.createObjectURL(new Blob([text],{type:'text/plain'}));try{return await loadIndexedObj({obj:url,mtl:'',mtlText:mtl.replace(/^map_Kd.*$/gm,'')})}finally{URL.revokeObjectURL(url)}})());
   const pending=assets.get(key),template=await pending;assets.delete(key);assets.set(key,pending);const mesh=template.mesh.clone();mesh.geometry=template.mesh.geometry.clone();mesh.material=Array.isArray(template.mesh.material)?template.mesh.material.map(m=>m.clone()):template.mesh.material.clone();
   for(const m of Array.isArray(mesh.material)?mesh.material:[mesh.material]){m.side=THREE.DoubleSide;m.shininess=0}
   const object=new THREE.Group();object.add(mesh);while(assets.size>24){const oldest=assets.keys().next().value,item=assets.get(oldest);assets.delete(oldest);item.then(t=>{t.mesh.geometry.dispose();for(const m of Array.isArray(t.mesh.material)?t.mesh.material:[t.mesh.material])m.dispose();});}return {...template,object,mesh,materialNames:template.materialNames.slice()};
@@ -23,7 +23,10 @@
  };
  const names=['待機','ふらふら','倒れる','もがく','待機（反転）','走る','前進','技1','技2','防御','回避','ダメージ','ダウン','起き上がる','喜ぶ','悲しむ','楽しむ'];
  // Motion scripts publish one shared slot, so load them sequentially exactly once.
- async function loadMotions(list){for(const name of new Set(list)){if(motions.has(name))continue;const row=DENPA_MOTIONS.animations.find(x=>x.labelJa===name);if(!row)throw Error('モーションがありません: '+name);await loadScript(row.script);motions.set(name,await loadMotion(DENPA_MOTION_DATA,false));globalThis.DENPA_MOTION_DATA=null;}}
+ async function loadMotions(list){const rows=[...new Set(list)].filter(name=>!motions.has(name)).map(name=>{const row=DENPA_MOTIONS.animations.find(x=>x.labelJa===name);if(!row)throw Error('モーションがありません: '+name);return {name,row};});
+ if(globalThis.RankAssetLoader&&rows.every(x=>x.row.binary)){await RankAssetLoader.pool(rows,async({name,row})=>{motions.set(name,await RankAssetLoader.timed('motion',name,()=>loadMotion(row.binary,false)));});return;}
+ for(const {name,row}of rows){await loadScript(row.script);motions.set(name,await loadMotion(DENPA_MOTION_DATA,false));globalThis.DENPA_MOTION_DATA=null;}}
+
  // Standing actors need only these clips. Other battle clips prepare in the background.
  await loadMotions(['待機','待機（反転）','倒れる']);
  const motionsReady=loadMotions([...names,...Object.values(globalThis.RankBattleVisualData?.reactions||{}).map(d=>d.motion).filter(Boolean),...Object.values(globalThis.RankBattleVisualData?.conditions||{}).map(d=>d.motion).filter(Boolean)]).then(()=>null,error=>error);
@@ -136,12 +139,13 @@
   while(font>6&&e.foot.scrollHeight>available){font=Math.max(6,font-1);e.foot.style.fontSize=font+'px';}
  }
 
- async function reconcile(){if(building)return;building=true;
+ async function reconcile(){if(building)return;building=true;globalThis.performance?.mark?.('battle-models-start');
  try{do{const version=revision;
   for(const [key,e]of actors)if(!desired.some(a=>a.key===key&&JSON.stringify(a.spec)===e.signature)){e.model.dispose();e.label.remove();e.foot.remove();e.hp.remove();actors.delete(key)}
   const visibleKeys=new Set(RankBattleMotion.visibleKeys(desired,view));
   const ordered=desired.slice().sort((a,b)=>Number(visibleKeys.has(b.key))-Number(visibleKeys.has(a.key)));
-  for(const a of ordered){if(version!==revision)break;if(actors.has(a.key))continue;status.textContent='3Dキャラクターを準備中…';const signature=JSON.stringify(a.spec),model=await createBattleActor(a.spec,shared,renderer);
+  if(globalThis.RankAssetLoader)await RankAssetLoader.timed('equipment-prefetch','party',()=>RankAssetLoader.pool(RankAssetLoader.equipmentRequests(ordered.map(a=>a.spec)),([kind,path])=>shared.resource(kind,path)));
+  for(const a of ordered){if(version!==revision)break;if(actors.has(a.key))continue;status.textContent='3Dキャラクターを準備中…';const signature=JSON.stringify(a.spec),model=await (globalThis.RankAssetLoader?RankAssetLoader.timed('build-actor',a.key,()=>createBattleActor(a.spec,shared,renderer)):createBattleActor(a.spec,shared,renderer));
    if(disposed||version!==revision){model.dispose();break}
    const latest=desired.find(x=>x.key===a.key)||a;
    const label=document.createElement('div');label.className='amount';const foot=document.createElement('div');foot.className='foot-log';const hp=document.createElement('div');hp.className='party-hp';const hpFill=document.createElement('span');hpFill.className='party-hp-fill';hp.append(hpFill);overlay.append(label,foot,hp);const entry={model,signature,label,foot,hp,hpFill,track:new RankBattleMotion.Track(latest),hud:RankBattleHud.create(hp)};actors.set(a.key,entry);model.root.userData.battleKey=a.key;scene.add(model.root);
@@ -151,6 +155,7 @@
   }
   if(version===revision)break;
  }while(!disposed);
+ globalThis.performance?.mark?.('battle-models-built');
  // Upload decoded textures before announcing readiness, including hidden teammates.
  // Otherwise first-use uploads stall individual battle scenes on mobile drivers.
  await shared.imagesReady();
@@ -161,7 +166,7 @@
  await globalThis.RankBattleNumbers?.prepare?.();
  const motionError=await motionsReady;if(motionError)throw motionError;
  await effectsReady;
- await fx?.prepare(desired);status.textContent='';parent.postMessage({type:'rank-battle-3d-prepared'},'*');
+ await fx?.prepare(desired);status.textContent='';globalThis.performance?.mark?.('battle-prepared');parent.postMessage({type:'rank-battle-3d-prepared'},'*');
  }catch(e){status.textContent='3D表示を準備できませんでした';parent.postMessage({type:'rank-battle-3d-error',message:String(e.message||e)},'*')}
  finally{building=false}
  }
@@ -179,10 +184,13 @@
   if(d.type==='rank-battle-3d-sync'){
    paused=!!d.paused;visible=!!d.visible;busy=!!d.busy;
    const next=d.actors||[],changed=JSON.stringify(next.map(a=>[a.key,a.spec]))!==JSON.stringify(desired.map(a=>[a.key,a.spec]));desired=next;if(changed)revision++;
-   for(const a of desired){const e=actors.get(a.key);if(e)e.track.sync(a,!!d.snap)}
+   // Finishing the result phase changes busy to false, not the displayed scene.
+   // Keep both the reaction-to-idle blend and its playback clock across that sync.
+   const preserveOutcome=!!(view.outcome&&d.defaultView?.outcome&&!changed&&d.visible&&!d.skip);
+   for(const a of desired){const e=actors.get(a.key);if(e)e.track.sync(a,!!d.snap&&!preserveOutcome)}
    if(busy){view.hpBars=false;for(const e of actors.values())e.hp.hidden=true;}
    if(changed||actors.size!==desired.length)void reconcile();
-   if(d.snap){complete();switchView(d.defaultView||{mode:'team',side:1});for(const e of actors.values())pose(e,0);}
+   if(d.snap&&!preserveOutcome){complete();switchView(d.defaultView||{mode:'team',side:1});for(const e of actors.values())pose(e,0);}
    }else if(d.type==='rank-battle-3d-cue'){
    if(d.view?.batch)d.cues=RankBattleDirector.batchPlan(d.view.batch,actors,motions);
    complete();switchView({...d.view,stage:d.view?.stage??d.cues?.[0]?.stage,side:d.view?.side??Number(d.view?.key?.split(':')[0])});last=0;phase={id:d.id,elapsed:0,duration:0,timeline:[],field:globalThis.RankBattleDirector?.field(view)};phase.duration=phase.field?.duration||0;updateCamera();updateField();
